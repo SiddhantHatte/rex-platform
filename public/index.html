@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rex Cybersecurity Instructor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101214;
+      --surface: #181c20;
+      --surface-2: #20262c;
+      --text: #edf2f4;
+      --muted: #9aa7b2;
+      --border: #313a43;
+      --accent: #58c4a3;
+      --warn: #f2b84b;
+      --danger: #ef6f6c;
+      --blue: #6fa8ff;
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    button, input, textarea, select { font: inherit; }
+    button { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: var(--radius); padding: 9px 12px; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #071411; border-color: var(--accent); font-weight: 700; }
+    button.danger { border-color: var(--danger); color: #ffd6d5; }
+    textarea, input, select { width: 100%; background: #0d0f11; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+    textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
+    code { color: #c8f6e7; }
+    a { color: var(--blue); }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 310px minmax(0, 1fr); }
+    aside { border-right: 1px solid var(--border); padding: 18px; background: #0d0f11; position: sticky; top: 0; height: 100vh; overflow: auto; }
+    main { padding: 22px; max-width: 1220px; width: 100%; margin: 0 auto; }
+    .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .brand h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .badge.ok { color: var(--accent); border-color: #2b806a; }
+    .badge.bad { color: var(--warn); border-color: #81642b; }
+    .badge.danger { color: var(--danger); border-color: #8a3937; }
+    .nav { display: grid; gap: 8px; margin-bottom: 18px; }
+    .nav button { text-align: left; }
+    .nav button.active { border-color: var(--accent); color: var(--accent); }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .metric, .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .metric b { font-size: 24px; display: block; }
+    .metric span { color: var(--muted); font-size: 12px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: 14px; align-items: start; }
+    .stack { display: grid; gap: 14px; }
+    .section-title { margin: 0 0 10px; font-size: 16px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .tasks { display: grid; gap: 8px; }
+    .task { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
+    .task input { width: auto; margin-top: 2px; }
+    .task strong { display: block; margin-bottom: 2px; }
+    .task p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .rex { border-left: 4px solid var(--accent); }
+    .rex-output { white-space: pre-wrap; line-height: 1.55; color: #dfe8e6; }
+    .status-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+    .progress { height: 10px; background: #0d0f11; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    .progress div { height: 100%; background: var(--accent); width: 0; }
+    .days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .day-btn { padding: 8px 6px; font-size: 12px; }
+    .day-btn.done { background: #12362d; border-color: #2b806a; color: #bdf4e3; }
+    .day-btn.current { border-color: var(--warn); color: var(--warn); }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .login-card { width: min(520px, 100%); }
+    .provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+    pre { white-space: pre-wrap; background: #0d0f11; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; overflow: auto; }
+    .hidden { display: none !important; }
+    @media (max-width: 920px) {
+      .app { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; }
+      .grid, .metric-grid { grid-template-columns: 1fr; }
+      .days { grid-template-columns: repeat(6, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginShell" class="login-shell hidden">
+    <div class="card login-card">
+      <h1 class="section-title">Rex Login</h1>
+      <p class="muted">Enter the admin password configured in <code>REX_ADMIN_PASSWORD</code>.</p>
+      <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Admin password">
+      <div class="toolbar" style="margin-top:10px">
+        <button id="loginBtn" class="primary">Unlock Rex</button>
+        <button id="refreshStatusBtn">Refresh Status</button>
+      </div>
+      <pre id="loginStatus" style="margin-top:12px">Checking server...</pre>
+    </div>
+  </div>
+
+  <div id="appShell" class="app hidden">
+    <aside>
+      <div class="brand">
+        <h1>Rex</h1>
+        <span id="apiStatus" class="badge">checking</span>
+      </div>
+      <div class="nav">
+        <button class="active" data-tab="mission">Mission Control</button>
+        <button data-tab="verify">Evidence Verification</button>
+        <button data-tab="regression">Regression Checks</button>
+        <button data-tab="research">Research Check</button>
+        <button data-tab="portfolio">Portfolio Writer</button>
+        <button data-tab="settings">Setup</button>
+      </div>
+      <div class="card">
+        <h2 class="section-title">30-Day Command</h2>
+        <label class="small muted" for="daySelect">Current day</label>
+        <select id="daySelect"></select>
+        <div class="status-line">
+          <span class="badge ok" id="streakBadge">0 day streak</span>
+          <span class="badge" id="scoreBadge">0 avg</span>
+        </div>
+        <div class="progress"><div id="overallProgress"></div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h2 class="section-title">Day Map</h2>
+        <div id="dayMap" class="days"></div>
+      </div>
+      <button id="logoutBtn" class="danger" style="width:100%;margin-top:14px">Logout</button>
+    </aside>
+
+    <main>
+      <section id="mission" class="tab-panel active">
+        <div class="metric-grid">
+          <div class="metric"><b id="completedCount">0</b><span>days approved</span></div>
+          <div class="metric"><b id="portfolioCount">0</b><span>portfolio notes saved</span></div>
+          <div class="metric"><b id="regressionCount">0</b><span>regressions passed</span></div>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h2 class="section-title" id="missionTitle">Today</h2>
+            <p class="muted" id="missionObjective"></p>
+            <div id="taskList" class="tasks"></div>
+          </div>
+          <div class="card rex">
+            <h2 class="section-title">Rex Orders</h2>
+            <div class="rex-output" id="rexOrders">Submit proof. No proof, no progress.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="verify" class="tab-panel">
+        <div class="grid">
+          <div class="card">
+            <h2 class="section-title">Evidence Submission</h2>
+            <p class="muted small">Minimum proof: platform, lab name, commands/approach, result, blocker, lesson learned, and artifact link or note.</p>
+            <textarea id="evidence" placeholder="Completed OverTheWire Bandit levels 0-5. Used ssh, ls, cat, file, find... Result... Blocker... Lesson... Artifact..."></textarea>
+            <div class="toolbar" style="margin-top:10px">
+              <button class="primary" id="verifyBtn">Verify With Rex</button>
+              <button id="saveEvidenceBtn">Save Draft Evidence</button>
+            </div>
+          </div>
+          <div class="card rex">
+            <h2 class="section-title">Verdict</h2>
+            <div id="verdict" class="rex-output">Waiting for evidence.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="regression" class="tab-panel">
+        <div class="grid">
+          <div class="card">
+            <h2 class="section-title">Memory Drill</h2>
+            <p id="regressionQuestion" class="muted"></p>
+            <textarea id="regressionAnswer" placeholder="Answer from memory. Include one command, one example, or one verification step."></textarea>
+            <div class="toolbar" style="margin-top:10px">
+              <button class="primary" id="checkRegressionBtn">Grade Regression</button>
+              <button id="newQuestionBtn">New Question</button>
+            </div>
+          </div>
+          <div class="card rex">
+            <h2 class="section-title">Regression Verdict</h2>
+            <div id="regressionVerdict" class="rex-output">Rex will quiz old skills so you do not fake-learn and forget.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="research" class="tab-panel">
+        <div class="grid">
+          <div class="card">
+            <h2 class="section-title">Resource Check</h2>
+            <textarea id="researchQuestion" placeholder="Example: Is ISC2 Certified in Cybersecurity still free in 2026, and is it worth doing before SOC Analyst applications in India?"></textarea>
+            <div class="toolbar" style="margin-top:10px">
+              <button class="primary" id="researchBtn">Ask Perplexity Rex</button>
+            </div>
+          </div>
+          <div class="card rex">
+            <h2 class="section-title">Research Verdict</h2>
+            <div id="researchOutput" class="rex-output">Current-resource checks appear here.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="portfolio" class="tab-panel">
+        <div class="grid">
+          <div class="card">
+            <h2 class="section-title">GitHub-Ready Writeup</h2>
+            <textarea id="portfolioMarkdown" placeholder="Approved evidence generates Markdown here. Edit before saving to GitHub."></textarea>
+            <div class="toolbar" style="margin-top:10px">
+              <button class="primary" id="savePortfolioBtn">Commit To GitHub Portfolio</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">GitHub Result</h2>
+            <pre id="fileOutput">No portfolio commits yet.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings" class="tab-panel">
+        <div class="stack">
+          <div class="card">
+            <h2 class="section-title">Provider Status</h2>
+            <div id="providerStatus" class="provider-grid"></div>
+          </div>
+          <div class="card">
+            <h2 class="section-title">Render Environment</h2>
+            <pre>REX_ADMIN_PASSWORD=choose-a-long-password
+SESSION_SECRET=generate-a-long-random-secret
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-3-flash-preview
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-5.5
+PERPLEXITY_API_KEY=your-perplexity-key
+PERPLEXITY_MODEL=sonar
+GITHUB_TOKEN=github-token-with-contents-write
+GITHUB_OWNER=SiddhantHatte
+GITHUB_PORTFOLIO_REPO=cybersecurity-portfolio
+GITHUB_BRANCH=main
+NODE_VERSION=22.22.0</pre>
+            <p class="muted small">
+              Create provider keys in your own accounts:
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Gemini</a>,
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">OpenAI</a>,
+              <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noreferrer">Perplexity</a>,
+              <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">GitHub token</a>.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const plan = [
+      ["TCP/IP, OSI, DNS, HTTP", "Build networking vocabulary. Finish TryHackMe Pre-Security networking modules.", ["Draw TCP/IP vs OSI from memory", "Explain DNS lookup path", "Capture one HTTP request/response safely"]],
+      ["Networking drills", "Ports, protocols, subnet basics, and packet reading.", ["List 30 common ports", "Explain TCP vs UDP", "Write notes in GitHub format"]],
+      ["Linux CLI I", "OverTheWire Bandit 0-6 and Linux navigation.", ["SSH into Bandit", "Use ls/cat/file/find", "Document every level"]],
+      ["Linux CLI II", "Permissions, processes, services, users, and logs.", ["Explain chmod/chown", "Use ps/netstat/ss", "Solve more Bandit levels"]],
+      ["Python basics", "Syntax, files, requests, and sockets for security automation.", ["Write one file parser", "Write one HTTP requests script", "Save code notes"]],
+      ["Python mini-tool", "Build a tiny authorized scanner or log parser.", ["Use only localhost/lab targets", "Handle errors", "Document inputs/outputs"]],
+      ["Home lab setup", "Install VirtualBox/Kali and a legal vulnerable VM or web lab.", ["Record VM setup", "List network mode", "Write safety rules"]],
+      ["Recon with Nmap", "Learn scan types and service enumeration.", ["Run scans against lab target only", "Compare -sV and default", "Explain results"]],
+      ["OSINT and scope", "Understand legal recon and bug bounty scopes.", ["Read 3 disclosed reports", "Write scope rules", "Practice on allowed targets"]],
+      ["OWASP Top 10 I", "PortSwigger SQLi and auth basics.", ["Complete labs", "Write payload notes", "Explain impact safely"]],
+      ["OWASP Top 10 II", "XSS, CSRF, IDOR fundamentals.", ["Complete beginner labs", "Capture request evidence", "Write mitigations"]],
+      ["Burp Suite basics", "Proxy, repeater, intruder basics in labs.", ["Configure browser proxy", "Send request to Repeater", "Document workflow"]],
+      ["Metasploit/DVWA", "Use exploitation frameworks only in local labs.", ["Run one DVWA exercise", "Explain exploit preconditions", "Write remediation"]],
+      ["Privilege escalation basics", "Linux privesc concepts and checklists.", ["Explain SUID", "Explain PATH risk", "Run legal lab exercise"]],
+      ["SOC fundamentals", "Logs, alerts, and SIEM concepts.", ["Read auth logs sample", "Write detection idea", "Map alert to MITRE ATT&CK"]],
+      ["Splunk or log drill", "Search, filter, and explain security logs.", ["Write 5 queries", "Explain false positives", "Save screenshots/notes"]],
+      ["Malware analysis intro", "Static and dynamic concepts without handling real malware.", ["Use safe samples/tutorials", "Explain hashes/strings", "Write safety boundaries"]],
+      ["Incident response", "Triage steps, evidence handling, and timelines.", ["Create IR checklist", "Write timeline example", "Define containment"]],
+      ["picoCTF session", "Solve beginner CTF challenges.", ["Solve at least 3", "Write clean walkthroughs", "Avoid sharing active flags publicly"]],
+      ["CTF hardening", "Redo previous CTFs from memory and improve notes.", ["Redo 2 challenges", "Add missed concepts", "Create glossary"]],
+      ["Portfolio checkpoint", "Publish your first structured GitHub writeups.", ["Save 5 Markdown notes", "Create README index", "Commit changes"]],
+      ["Bug bounty orientation", "HackerOne/Bugcrowd profile, policy reading, report anatomy.", ["Read 5 disclosed reports", "Create report template", "Choose beginner program"]],
+      ["First safe report attempt", "Test only allowed scopes and write professional report draft.", ["No intrusive testing", "Document reproduction", "State impact clearly"]],
+      ["AI security intro", "OWASP LLM Top 10 and prompt injection basics.", ["Summarize top risks", "Run safe toy examples", "Write mitigations"]],
+      ["LLM app threat model", "Map AI risks to a simple app.", ["List assets", "List trust boundaries", "Write 5 abuse cases"]],
+      ["Writeup polish", "Turn lab notes into professional public writing.", ["Rewrite 2 notes", "Add remediation", "Add executive summary"]],
+      ["Portfolio project", "Create one mini security tool or lab guide.", ["README", "Usage", "Limitations and ethics"]],
+      ["Free cert sprint", "ISC2 CC/Cisco/IBM/Google preparation.", ["Register/check voucher", "Complete modules", "Save cert links"]],
+      ["Mock interview", "Explain your work out loud and fix weak areas.", ["Answer 10 questions", "Record weak topics", "Redo one lab"]],
+      ["Final review", "Ship portfolio index and 90-day continuation plan.", ["Save final README", "Commit portfolio", "Plan next 12 weeks"]]
+    ].map((row, i) => ({ day: i + 1, title: row[0], objective: row[1], tasks: row[2] }));
+
+    const state = JSON.parse(localStorage.getItem("rex-state") || "{}");
+    state.day ??= 1;
+    state.completed ??= {};
+    state.scores ??= {};
+    state.regressions ??= 0;
+    state.portfolioCount ??= 0;
+    state.evidenceDrafts ??= {};
+    let serverStatus = null;
+
+    const $ = id => document.getElementById(id);
+
+    function saveState() {
+      localStorage.setItem("rex-state", JSON.stringify(state));
+      render();
+    }
+
+    function currentTask() {
+      return plan[state.day - 1];
+    }
+
+    async function loadStatus() {
+      const response = await fetch("/api/status");
+      serverStatus = await response.json();
+      renderAuth();
+      renderProviderStatus();
+      return serverStatus;
+    }
+
+    function renderAuth() {
+      const authenticated = Boolean(serverStatus?.authenticated);
+      $("loginShell").classList.toggle("hidden", authenticated);
+      $("appShell").classList.toggle("hidden", !authenticated);
+      const configured = Boolean(serverStatus?.authConfigured);
+      $("loginStatus").textContent = configured
+        ? JSON.stringify(providerSummary(), null, 2)
+        : "REX_ADMIN_PASSWORD and SESSION_SECRET are not configured yet.";
+      if (authenticated) render();
+    }
+
+    function providerSummary() {
+      const providers = serverStatus?.providers || {};
+      return Object.fromEntries(Object.entries(providers).map(([key, value]) => [key, {
+        configured: value.configured,
+        model: value.model || "",
+        repo: value.repo || ""
+      }]));
+    }
+
+    function renderProviderStatus() {
+      const providers = serverStatus?.providers || {};
+      $("providerStatus").innerHTML = Object.entries(providers).map(([key, value]) => `
+        <div class="card">
+          <div class="status-line">
+            <strong>${key}</strong>
+            <span class="badge ${value.configured ? "ok" : "bad"}">${value.configured ? "configured" : "missing"}</span>
+          </div>
+          <div class="small muted">${value.role || ""}</div>
+          <div class="small muted">${value.model || [value.owner, value.repo, value.branch].filter(Boolean).join("/")}</div>
+        </div>
+      `).join("");
+      const ready = providers.gemini?.configured || providers.openai?.configured || providers.perplexity?.configured;
+      $("apiStatus").textContent = ready ? "providers" : "fallback";
+      $("apiStatus").className = `badge ${ready ? "ok" : "bad"}`;
+    }
+
+    function render() {
+      $("daySelect").value = state.day;
+      const task = currentTask();
+      $("missionTitle").textContent = `Day ${task.day}: ${task.title}`;
+      $("missionObjective").textContent = task.objective;
+      $("taskList").innerHTML = task.tasks.map((item, idx) => `
+        <label class="task">
+          <input type="checkbox" ${state.completed[state.day]?.tasks?.[idx] ? "checked" : ""} data-task-index="${idx}">
+          <span><strong>${item}</strong><p>Rex requires proof before the day can be approved.</p></span>
+        </label>
+      `).join("");
+      $("completedCount").textContent = Object.keys(state.completed).filter(day => state.completed[day]?.approved).length;
+      $("portfolioCount").textContent = state.portfolioCount;
+      $("regressionCount").textContent = state.regressions;
+      const scores = Object.values(state.scores);
+      $("scoreBadge").textContent = `${scores.length ? Math.round(scores.reduce((a,b) => a + b, 0) / scores.length) : 0} avg`;
+      const done = Object.keys(state.completed).filter(day => state.completed[day]?.approved).length;
+      $("overallProgress").style.width = `${done / 30 * 100}%`;
+      $("streakBadge").textContent = `${calculateStreak()} day streak`;
+      $("dayMap").innerHTML = plan.map(item => `<button class="day-btn ${state.completed[item.day]?.approved ? "done" : ""} ${item.day === state.day ? "current" : ""}" data-day="${item.day}">${item.day}</button>`).join("");
+      $("evidence").value = state.evidenceDrafts[state.day] || $("evidence").value;
+    }
+
+    function calculateStreak() {
+      let streak = 0;
+      for (let day = state.day; day >= 1; day--) {
+        if (state.completed[day]?.approved) streak++;
+        else break;
+      }
+      return streak;
+    }
+
+    async function post(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (response.status === 401) {
+        await loadStatus();
+        throw new Error("Authentication required. Login again.");
+      }
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || `Request failed with ${response.status}`);
+      return payload;
+    }
+
+    async function login() {
+      $("loginStatus").textContent = "Checking password...";
+      try {
+        await post("/api/login", { password: $("passwordInput").value });
+        $("passwordInput").value = "";
+        await loadStatus();
+      } catch (error) {
+        $("loginStatus").textContent = error.message;
+      }
+    }
+
+    async function logout() {
+      await post("/api/logout", {});
+      await loadStatus();
+    }
+
+    async function verifyEvidence() {
+      $("verdict").textContent = "Rex is checking your proof...";
+      const task = currentTask();
+      const evidence = $("evidence").value.trim();
+      try {
+        const result = await post("/api/rex", { mode: "verify", day: state.day, task, evidence, completed: state.completed });
+        $("verdict").textContent = formatVerdict(result);
+        $("rexOrders").textContent = result.verdict || "No verdict.";
+        if (result.portfolio_markdown) $("portfolioMarkdown").value = result.portfolio_markdown;
+        state.scores[state.day] = result.score || 0;
+        state.completed[state.day] ??= {};
+        state.completed[state.day].approved = Boolean(result.approved);
+        if (result.approved) state.completed[state.day].approvedAt = new Date().toISOString();
+        saveState();
+      } catch (error) {
+        $("verdict").textContent = `Error: ${error.message}`;
+      }
+    }
+
+    function formatVerdict(result) {
+      return [
+        `Approved: ${result.approved ? "YES" : "NO"}`,
+        `Score: ${result.score ?? 0}/100`,
+        `Judge: ${result.provider || "unknown"}`,
+        result.portfolio_provider ? `Portfolio writer: ${result.portfolio_provider}` : "",
+        "",
+        result.verdict || "",
+        "",
+        "Next actions:",
+        ...(result.next_actions || []).map(item => `- ${item}`)
+      ].filter(Boolean).join("\n");
+    }
+
+    async function gradeRegression() {
+      $("regressionVerdict").textContent = "Rex is grading memory, not vibes...";
+      try {
+        const result = await post("/api/rex", {
+          mode: "regression",
+          day: state.day,
+          task: currentTask(),
+          evidence: $("regressionQuestion").textContent,
+          answer: $("regressionAnswer").value.trim()
+        });
+        $("regressionVerdict").textContent = formatVerdict(result);
+        if (result.approved) {
+          state.regressions += 1;
+          saveState();
+        }
+        if (result.regression_question) $("regressionQuestion").textContent = result.regression_question;
+      } catch (error) {
+        $("regressionVerdict").textContent = `Error: ${error.message}`;
+      }
+    }
+
+    async function runResearchCheck() {
+      $("researchOutput").textContent = "Perplexity Rex is checking current sources...";
+      try {
+        const result = await post("/api/research", { question: $("researchQuestion").value.trim() });
+        const sources = (result.search_results || []).map(item => `- ${item.title || item.url}: ${item.url || ""}`);
+        $("researchOutput").textContent = [
+          result.answer || result.error || "No answer returned.",
+          "",
+          sources.length ? "Sources:" : "",
+          ...sources
+        ].filter(Boolean).join("\n");
+      } catch (error) {
+        $("researchOutput").textContent = `Error: ${error.message}`;
+      }
+    }
+
+    async function savePortfolio() {
+      const task = currentTask();
+      const content = $("portfolioMarkdown").value.trim();
+      if (!content) return $("fileOutput").textContent = "Nothing to save.";
+      try {
+        const result = await post("/api/artifact", {
+          day: state.day,
+          title: `day-${state.day}-${task.title}`,
+          content,
+          message: `Day ${state.day}: ${task.title}`
+        });
+        state.portfolioCount += 1;
+        saveState();
+        $("fileOutput").textContent = JSON.stringify(result, null, 2);
+      } catch (error) {
+        $("fileOutput").textContent = `Error: ${error.message}`;
+      }
+    }
+
+    function randomQuestion() {
+      const questions = [
+        "Explain TCP three-way handshake and name one sign of a SYN scan in logs.",
+        "What does Linux permission 750 mean, and why does it matter?",
+        "Explain reflected XSS versus stored XSS with one safe lab example.",
+        "What is IDOR, and how do you prove impact ethically?",
+        "Explain nmap -sS, -sV, and -A in plain terms.",
+        "What makes a bug bounty report actionable?",
+        "Explain SQL injection with a harmless lab example.",
+        "What should never be included in a public security writeup?"
+      ];
+      return questions[Math.floor(Math.random() * questions.length)];
+    }
+
+    function wire() {
+      document.querySelectorAll(".nav button").forEach(btn => btn.addEventListener("click", () => {
+        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        $(btn.dataset.tab).classList.add("active");
+      }));
+      $("daySelect").innerHTML = plan.map(item => `<option value="${item.day}">Day ${item.day}: ${item.title}</option>`).join("");
+      $("daySelect").addEventListener("change", event => { state.day = Number(event.target.value); saveState(); });
+      $("dayMap").addEventListener("click", event => {
+        const button = event.target.closest("button[data-day]");
+        if (!button) return;
+        state.day = Number(button.dataset.day);
+        saveState();
+      });
+      $("taskList").addEventListener("change", event => {
+        const idx = event.target.dataset.taskIndex;
+        if (idx === undefined) return;
+        state.completed[state.day] ??= { tasks: {} };
+        state.completed[state.day].tasks ??= {};
+        state.completed[state.day].tasks[idx] = event.target.checked;
+        saveState();
+      });
+      $("verifyBtn").addEventListener("click", verifyEvidence);
+      $("saveEvidenceBtn").addEventListener("click", () => {
+        state.evidenceDrafts[state.day] = $("evidence").value;
+        saveState();
+        $("verdict").textContent = "Draft saved locally in this browser.";
+      });
+      $("checkRegressionBtn").addEventListener("click", gradeRegression);
+      $("newQuestionBtn").addEventListener("click", () => $("regressionQuestion").textContent = randomQuestion());
+      $("researchBtn").addEventListener("click", runResearchCheck);
+      $("savePortfolioBtn").addEventListener("click", savePortfolio);
+      $("loginBtn").addEventListener("click", login);
+      $("passwordInput").addEventListener("keydown", event => { if (event.key === "Enter") login(); });
+      $("logoutBtn").addEventListener("click", logout);
+      $("refreshStatusBtn").addEventListener("click", loadStatus);
+    }
+
+    $("regressionQuestion").textContent = randomQuestion();
+    wire();
+    loadStatus().catch(error => {
+      $("loginShell").classList.remove("hidden");
+      $("loginStatus").textContent = error.message;
+    });
+  </script>
+</body>
+</html>

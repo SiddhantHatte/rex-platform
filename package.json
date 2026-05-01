@@ -1,0 +1,12 @@
+{
+  "name": "rex-cybersecurity-instructor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local strict cybersecurity accountability platform with evidence verification and portfolio generation.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
