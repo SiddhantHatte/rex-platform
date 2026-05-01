@@ -1,564 +1,1090 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rex Cybersecurity Instructor</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #101214;
-      --surface: #181c20;
-      --surface-2: #20262c;
-      --text: #edf2f4;
-      --muted: #9aa7b2;
-      --border: #313a43;
-      --accent: #58c4a3;
-      --warn: #f2b84b;
-      --danger: #ef6f6c;
-      --blue: #6fa8ff;
-      --radius: 8px;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); }
-    button, input, textarea, select { font: inherit; }
-    button { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: var(--radius); padding: 9px 12px; cursor: pointer; }
-    button:hover { border-color: var(--accent); }
-    button.primary { background: var(--accent); color: #071411; border-color: var(--accent); font-weight: 700; }
-    button.danger { border-color: var(--danger); color: #ffd6d5; }
-    textarea, input, select { width: 100%; background: #0d0f11; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
-    textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
-    code { color: #c8f6e7; }
-    a { color: var(--blue); }
-    .app { min-height: 100vh; display: grid; grid-template-columns: 310px minmax(0, 1fr); }
-    aside { border-right: 1px solid var(--border); padding: 18px; background: #0d0f11; position: sticky; top: 0; height: 100vh; overflow: auto; }
-    main { padding: 22px; max-width: 1220px; width: 100%; margin: 0 auto; }
-    .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-    .brand h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 4px 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
-    .badge.ok { color: var(--accent); border-color: #2b806a; }
-    .badge.bad { color: var(--warn); border-color: #81642b; }
-    .badge.danger { color: var(--danger); border-color: #8a3937; }
-    .nav { display: grid; gap: 8px; margin-bottom: 18px; }
-    .nav button { text-align: left; }
-    .nav button.active { border-color: var(--accent); color: var(--accent); }
-    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
-    .metric, .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-    .metric b { font-size: 24px; display: block; }
-    .metric span { color: var(--muted); font-size: 12px; }
-    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: 14px; align-items: start; }
-    .stack { display: grid; gap: 14px; }
-    .section-title { margin: 0 0 10px; font-size: 16px; }
-    .muted { color: var(--muted); }
-    .small { font-size: 12px; }
-    .tasks { display: grid; gap: 8px; }
-    .task { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
-    .task input { width: auto; margin-top: 2px; }
-    .task strong { display: block; margin-bottom: 2px; }
-    .task p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-    .rex { border-left: 4px solid var(--accent); }
-    .rex-output { white-space: pre-wrap; line-height: 1.55; color: #dfe8e6; }
-    .status-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
-    .progress { height: 10px; background: #0d0f11; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
-    .progress div { height: 100%; background: var(--accent); width: 0; }
-    .days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .day-btn { padding: 8px 6px; font-size: 12px; }
-    .day-btn.done { background: #12362d; border-color: #2b806a; color: #bdf4e3; }
-    .day-btn.current { border-color: var(--warn); color: var(--warn); }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
-    .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-    .login-card { width: min(520px, 100%); }
-    .provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-    pre { white-space: pre-wrap; background: #0d0f11; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; overflow: auto; }
-    .hidden { display: none !important; }
-    @media (max-width: 920px) {
-      .app { grid-template-columns: 1fr; }
-      aside { position: static; height: auto; }
-      .grid, .metric-grid { grid-template-columns: 1fr; }
-      .days { grid-template-columns: repeat(6, 1fr); }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commander Rex — Elite Cybersecurity Training</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#eeede9;
+  --txt:#1a1a18;--txt2:#6b6b63;--txt3:#a09f98;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-border:rgba(59,109,17,0.3);
+  --red:#A32D2D;--red-bg:#FCEBEB;--red-border:rgba(163,45,45,0.3);
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-border:rgba(24,95,165,0.3);
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:rgba(133,79,11,0.3);
+  --radius:8px;--radius-lg:12px;
+  --mono:'Courier New',monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+  --txt:#e8e8e2;--txt2:#9a9a92;--txt3:#6b6b63;
+  --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);
+  --green:#97C459;--green-bg:#173404;--green-border:rgba(151,196,89,0.3);
+  --red:#F09595;--red-bg:#501313;--red-border:rgba(240,149,149,0.3);
+  --blue:#85B7EB;--blue-bg:#042C53;--blue-border:rgba(133,183,235,0.3);
+  --amber:#EF9F27;--amber-bg:#412402;--amber-border:rgba(239,159,39,0.3);
+}}
+body{font-family:var(--sans);background:var(--bg3);color:var(--txt);min-height:100vh;font-size:14px;line-height:1.5}
+.shell{max-width:900px;margin:0 auto;background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.logo{font-size:15px;font-weight:600;color:var(--txt);letter-spacing:-0.01em}
+.logo span{color:var(--red);font-weight:400}
+.topbar-stats{display:flex;gap:16px}
+.tstat{text-align:right}
+.tstat-val{font-size:18px;font-weight:600;color:var(--txt);line-height:1}
+.tstat-lbl{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em}
+.prog-outer{height:3px;background:var(--bg3);overflow:hidden}
+.prog-inner{height:100%;background:var(--green);transition:width .4s}
+.nav{display:flex;border-bottom:0.5px solid var(--border);background:var(--bg);overflow-x:auto}
+.nav-tab{flex-shrink:0;padding:10px 16px;font-size:12px;font-weight:500;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans);white-space:nowrap}
+.nav-tab:hover{color:var(--txt)}
+.nav-tab.active{color:var(--txt);border-bottom-color:var(--txt)}
+.content{padding:20px;flex:1}
+.pane{display:none}
+.pane.active{display:block}
+.section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);margin-bottom:10px}
+.card{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;background:var(--bg)}
+.card-title{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:10px}
+.metric-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-bottom:16px}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:12px}
+.m-val{font-size:22px;font-weight:700;color:var(--txt);line-height:1}
+.m-lbl{font-size:11px;color:var(--txt3);margin-top:3px}
+.btn{cursor:pointer;padding:7px 14px;font-size:12px;font-weight:500;font-family:var(--sans);border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--txt);transition:.15s}
+.btn:hover{background:var(--bg2)}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:var(--txt);color:var(--bg);border-color:var(--txt)}
+.btn-primary:hover{opacity:.88}
+.btn-sm{cursor:pointer;padding:4px 9px;font-size:11px;font-weight:500;font-family:var(--sans);border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg);color:var(--txt2)}
+.btn-sm:hover{color:var(--txt);background:var(--bg2)}
+.btn-danger{border-color:var(--red-border);color:var(--red)}
+.btn-big-danger{width:100%;padding:14px;font-size:14px;font-weight:600;font-family:var(--sans);border-radius:var(--radius-lg);border:0.5px solid var(--red-border);background:var(--red-bg);color:var(--red);cursor:pointer;margin-bottom:12px}
+.btn-big-danger:hover{opacity:.85}
+.alert{padding:10px 13px;border-radius:var(--radius);font-size:12px;line-height:1.6;margin-bottom:10px}
+.a-ok{background:var(--green-bg);color:var(--green);border:0.5px solid var(--green-border)}
+.a-err{background:var(--red-bg);color:var(--red);border:0.5px solid var(--red-border)}
+.a-info{background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue-border)}
+.a-warn{background:var(--amber-bg);color:var(--amber);border:0.5px solid var(--amber-border)}
+textarea,input[type=text],input[type=password],select{
+  width:100%;padding:9px 11px;font-size:12px;font-family:var(--sans);
+  border:0.5px solid var(--border2);border-radius:var(--radius);
+  background:var(--bg);color:var(--txt);outline:none;
+}
+textarea:focus,input:focus,select:focus{border-color:var(--txt2)}
+textarea{min-height:90px;resize:vertical}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--txt);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.day-dot-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px}
+.dd{width:24px;height:24px;border-radius:50%;border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:pointer;color:var(--txt3);transition:.1s}
+.dd:hover{border-color:var(--border2);color:var(--txt)}
+.dd.current{border-color:var(--txt2);color:var(--txt);border-width:1.5px}
+.dd.approved{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.dd.missed{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.dd.future{opacity:.35;pointer-events:none}
+.task-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.task-row:last-child{border:none}
+.chk{width:16px;height:16px;border:0.5px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.chk.ok{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.task-txt{font-size:12px;color:var(--txt2);line-height:1.5}
+.task-txt.done{text-decoration:line-through;color:var(--txt3)}
+.chat-wrap{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px;background:var(--bg2);max-height:320px;overflow-y:auto;margin-bottom:10px}
+.msg{margin-bottom:10px}
+.msg-from{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.rex-from{color:var(--red)}
+.you-from{color:var(--blue)}
+.msg-body{font-size:12px;line-height:1.6;color:var(--txt);padding:8px 11px;border-radius:var(--radius);background:var(--bg);border:0.5px solid var(--border);white-space:pre-wrap;word-break:break-word}
+.rex-body{border-color:var(--red-border)}
+.code-block{font-family:var(--mono);font-size:11px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;color:var(--txt);line-height:1.6}
+.link-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.link-row:last-child{border:none}
+.link-name{font-size:13px;font-weight:500;color:var(--blue);text-decoration:none}
+.link-name:hover{text-decoration:underline}
+.link-tag{font-size:10px;padding:2px 7px;border-radius:var(--radius);border:0.5px solid var(--border);color:var(--txt3);background:var(--bg2);flex-shrink:0}
+.block-row{display:grid;grid-template-columns:90px 1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.block-row:last-child{border:none}
+.btime{font-size:11px;font-family:var(--mono);color:var(--txt3)}
+.btask strong{font-size:12px;font-weight:600;color:var(--txt);display:block}
+.btask span{font-size:11px;color:var(--txt3)}
+.btimer{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--txt);min-width:50px;text-align:right}
+.prog-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;background:var(--blue);transition:width .3s}
+.note-row{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.note-row:last-child{border:none}
+.note-day{font-size:10px;color:var(--txt3);min-width:40px;padding-top:2px;font-weight:600}
+.note-txt{font-size:12px;color:var(--txt2);line-height:1.5}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:var(--radius)}
+.b-ok{background:var(--green-bg);color:var(--green)}
+.b-err{background:var(--red-bg);color:var(--red)}
+.b-info{background:var(--blue-bg);color:var(--blue)}
+.b-mute{background:var(--bg2);color:var(--txt3)}
+.b-warn{background:var(--amber-bg);color:var(--amber)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sep{height:0.5px;background:var(--border);margin:14px 0}
+.key-setup{background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.key-setup p{font-size:12px;color:var(--amber);line-height:1.6;margin-bottom:10px}
+
+/* chart wrapper */
+.chart-wrap{position:relative;width:100%;margin-bottom:16px}
+
+/* Week selector pills */
+.week-pills{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.wpill{padding:4px 11px;border:0.5px solid var(--border);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;color:var(--txt2);background:var(--bg)}
+.wpill.active{border-color:var(--txt2);color:var(--txt);background:var(--bg2)}
+
+/* setup screen */
+.setup-screen{min-height:60vh;display:flex;align-items:center;justify-content:center;padding:40px}
+.setup-box{max-width:420px;width:100%}
+.setup-box h2{font-size:22px;font-weight:700;color:var(--txt);margin-bottom:8px}
+.setup-box p{font-size:13px;color:var(--txt2);line-height:1.7;margin-bottom:20px}
+.setup-box label{font-size:12px;font-weight:600;color:var(--txt);display:block;margin-bottom:6px}
+.steps{margin-top:20px}
+.step{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--txt);flex-shrink:0;margin-top:1px}
+.step-txt{font-size:12px;color:var(--txt2);line-height:1.5}
+.step-txt a{color:var(--blue)}
+</style>
 </head>
 <body>
-  <div id="loginShell" class="login-shell hidden">
-    <div class="card login-card">
-      <h1 class="section-title">Rex Login</h1>
-      <p class="muted">Enter the admin password configured in <code>REX_ADMIN_PASSWORD</code>.</p>
-      <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Admin password">
-      <div class="toolbar" style="margin-top:10px">
-        <button id="loginBtn" class="primary">Unlock Rex</button>
-        <button id="refreshStatusBtn">Refresh Status</button>
-      </div>
-      <pre id="loginStatus" style="margin-top:12px">Checking server...</pre>
+
+<div class="shell">
+
+<!-- Setup screen (shown if no API key) -->
+<div id="setupScreen" class="setup-screen" style="display:none">
+  <div class="setup-box">
+    <h2>Commander Rex</h2>
+    <p>Elite Cybersecurity Accountability System · 30-Day Program · Powered by Gemini AI</p>
+    <label>Admin Password</label>
+    <input type="password" id="keyInput" placeholder="Enter password..." style="margin-bottom:10px">
+    <p style="font-size:11px;color:var(--txt3);margin-top:-4px;margin-bottom:14px">Enter the admin password to unlock Rex.</p>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%">Unlock Commander Rex →</button>
+    <div id="loginError" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- Main app (shown when key exists) -->
+<div id="mainApp" style="display:none">
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Commander <span>Rex</span></div>
+    <span class="badge b-mute" id="dayBadge">Day 1 / 30</span>
+  </div>
+  <div class="topbar-stats">
+    <div class="tstat"><div class="tstat-val" id="hStreak">0</div><div class="tstat-lbl">Streak</div></div>
+    <div class="tstat"><div class="tstat-val" id="hDone">0</div><div class="tstat-lbl">Verified</div></div>
+    <div class="tstat"><div class="tstat-val" id="hPct">0%</div><div class="tstat-lbl">Complete</div></div>
+    <button class="btn-sm btn-danger" onclick="doLogout()" style="margin-left:8px">Logout</button>
+  </div>
+</div>
+<div class="prog-outer"><div class="prog-inner" id="mainProg" style="width:0%"></div></div>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="sw('mission')">Mission</button>
+  <button class="nav-tab" onclick="sw('verify')">Verify with Rex</button>
+  <button class="nav-tab" onclick="sw('rex')">Rex chat</button>
+  <button class="nav-tab" onclick="sw('timer')">Schedule timer</button>
+  <button class="nav-tab" onclick="sw('writing')">Writing lab</button>
+  <button class="nav-tab" onclick="sw('analytics')">Analytics</button>
+  <button class="nav-tab" onclick="sw('exhaust')">Exhaustion override</button>
+  <button class="nav-tab" onclick="sw('resources')">Resources</button>
+  <button class="nav-tab" onclick="sw('portfolio')">Portfolio</button>
+  <button class="nav-tab" onclick="sw('notes')">Notes</button>
+</nav>
+
+<div class="content">
+
+<!-- MISSION -->
+<div id="pMission" class="pane active">
+  <div class="metric-row" id="missionMetrics"></div>
+  <div class="section-label">30-day map</div>
+  <div class="day-dot-grid" id="dayDots"></div>
+  <div id="missionBody"></div>
+</div>
+
+<!-- VERIFY -->
+<div id="pVerify" class="pane">
+  <div id="verifyAlert"></div>
+  <div class="section-label">Evidence report</div>
+  <div class="card">
+    <p style="font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:12px">Be specific. Name every command you ran. State what outputs you saw. Rex will interrogate you — vague submissions are rejected immediately.</p>
+    <textarea id="evInput" placeholder="Example: I completed Bandit levels 0–10. For level 0: ssh bandit0@bandit.labs.overthewire.org -p 2220. Found password in readme using 'cat readme'. Level 4: used 'file ./-file0*' to find human-readable file, was -file07. Level 5: 'find . -size 1033c ! -executable' to locate the file..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn btn-primary" onclick="submitEvidence()" id="subBtn">Submit to Rex →</button>
+      <span id="subSpin" style="display:none;font-size:12px;color:var(--txt2)"><span class="spin"></span> Rex is analyzing...</span>
     </div>
   </div>
+</div>
 
-  <div id="appShell" class="app hidden">
-    <aside>
-      <div class="brand">
-        <h1>Rex</h1>
-        <span id="apiStatus" class="badge">checking</span>
-      </div>
-      <div class="nav">
-        <button class="active" data-tab="mission">Mission Control</button>
-        <button data-tab="verify">Evidence Verification</button>
-        <button data-tab="regression">Regression Checks</button>
-        <button data-tab="research">Research Check</button>
-        <button data-tab="portfolio">Portfolio Writer</button>
-        <button data-tab="settings">Setup</button>
-      </div>
-      <div class="card">
-        <h2 class="section-title">30-Day Command</h2>
-        <label class="small muted" for="daySelect">Current day</label>
-        <select id="daySelect"></select>
-        <div class="status-line">
-          <span class="badge ok" id="streakBadge">0 day streak</span>
-          <span class="badge" id="scoreBadge">0 avg</span>
-        </div>
-        <div class="progress"><div id="overallProgress"></div></div>
-      </div>
-      <div class="card" style="margin-top:14px">
-        <h2 class="section-title">Day Map</h2>
-        <div id="dayMap" class="days"></div>
-      </div>
-      <button id="logoutBtn" class="danger" style="width:100%;margin-top:14px">Logout</button>
-    </aside>
-
-    <main>
-      <section id="mission" class="tab-panel active">
-        <div class="metric-grid">
-          <div class="metric"><b id="completedCount">0</b><span>days approved</span></div>
-          <div class="metric"><b id="portfolioCount">0</b><span>portfolio notes saved</span></div>
-          <div class="metric"><b id="regressionCount">0</b><span>regressions passed</span></div>
-        </div>
-        <div class="grid">
-          <div class="card">
-            <h2 class="section-title" id="missionTitle">Today</h2>
-            <p class="muted" id="missionObjective"></p>
-            <div id="taskList" class="tasks"></div>
-          </div>
-          <div class="card rex">
-            <h2 class="section-title">Rex Orders</h2>
-            <div class="rex-output" id="rexOrders">Submit proof. No proof, no progress.</div>
-          </div>
-        </div>
-      </section>
-
-      <section id="verify" class="tab-panel">
-        <div class="grid">
-          <div class="card">
-            <h2 class="section-title">Evidence Submission</h2>
-            <p class="muted small">Minimum proof: platform, lab name, commands/approach, result, blocker, lesson learned, and artifact link or note.</p>
-            <textarea id="evidence" placeholder="Completed OverTheWire Bandit levels 0-5. Used ssh, ls, cat, file, find... Result... Blocker... Lesson... Artifact..."></textarea>
-            <div class="toolbar" style="margin-top:10px">
-              <button class="primary" id="verifyBtn">Verify With Rex</button>
-              <button id="saveEvidenceBtn">Save Draft Evidence</button>
-            </div>
-          </div>
-          <div class="card rex">
-            <h2 class="section-title">Verdict</h2>
-            <div id="verdict" class="rex-output">Waiting for evidence.</div>
-          </div>
-        </div>
-      </section>
-
-      <section id="regression" class="tab-panel">
-        <div class="grid">
-          <div class="card">
-            <h2 class="section-title">Memory Drill</h2>
-            <p id="regressionQuestion" class="muted"></p>
-            <textarea id="regressionAnswer" placeholder="Answer from memory. Include one command, one example, or one verification step."></textarea>
-            <div class="toolbar" style="margin-top:10px">
-              <button class="primary" id="checkRegressionBtn">Grade Regression</button>
-              <button id="newQuestionBtn">New Question</button>
-            </div>
-          </div>
-          <div class="card rex">
-            <h2 class="section-title">Regression Verdict</h2>
-            <div id="regressionVerdict" class="rex-output">Rex will quiz old skills so you do not fake-learn and forget.</div>
-          </div>
-        </div>
-      </section>
-
-      <section id="research" class="tab-panel">
-        <div class="grid">
-          <div class="card">
-            <h2 class="section-title">Resource Check</h2>
-            <textarea id="researchQuestion" placeholder="Example: Is ISC2 Certified in Cybersecurity still free in 2026, and is it worth doing before SOC Analyst applications in India?"></textarea>
-            <div class="toolbar" style="margin-top:10px">
-              <button class="primary" id="researchBtn">Ask Perplexity Rex</button>
-            </div>
-          </div>
-          <div class="card rex">
-            <h2 class="section-title">Research Verdict</h2>
-            <div id="researchOutput" class="rex-output">Current-resource checks appear here.</div>
-          </div>
-        </div>
-      </section>
-
-      <section id="portfolio" class="tab-panel">
-        <div class="grid">
-          <div class="card">
-            <h2 class="section-title">GitHub-Ready Writeup</h2>
-            <textarea id="portfolioMarkdown" placeholder="Approved evidence generates Markdown here. Edit before saving to GitHub."></textarea>
-            <div class="toolbar" style="margin-top:10px">
-              <button class="primary" id="savePortfolioBtn">Commit To GitHub Portfolio</button>
-            </div>
-          </div>
-          <div class="card">
-            <h2 class="section-title">GitHub Result</h2>
-            <pre id="fileOutput">No portfolio commits yet.</pre>
-          </div>
-        </div>
-      </section>
-
-      <section id="settings" class="tab-panel">
-        <div class="stack">
-          <div class="card">
-            <h2 class="section-title">Provider Status</h2>
-            <div id="providerStatus" class="provider-grid"></div>
-          </div>
-          <div class="card">
-            <h2 class="section-title">Render Environment</h2>
-            <pre>REX_ADMIN_PASSWORD=choose-a-long-password
-SESSION_SECRET=generate-a-long-random-secret
-GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-2.0-flash
-OPENAI_API_KEY=your-openai-key
-OPENAI_MODEL=gpt-4o
-PERPLEXITY_API_KEY=your-perplexity-key
-PERPLEXITY_MODEL=sonar
-GITHUB_TOKEN=github-token-with-contents-write
-GITHUB_OWNER=SiddhantHatte
-GITHUB_PORTFOLIO_REPO=cybersecurity-portfolio
-GITHUB_BRANCH=main
-NODE_VERSION=22.22.0</pre>
-            <p class="muted small">
-              Create provider keys in your own accounts:
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Gemini</a>,
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">OpenAI</a>,
-              <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noreferrer">Perplexity</a>,
-              <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">GitHub token</a>.
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
+<!-- REX CHAT -->
+<div id="pRex" class="pane">
+  <div class="section-label">Commander Rex — live interrogation</div>
+  <div class="chat-wrap" id="chatArea"></div>
+  <div class="row">
+    <input type="text" id="chatIn" placeholder="Answer Rex's question..." style="flex:1" onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="btn btn-primary" onclick="sendMsg()">Send</button>
   </div>
+  <div id="chatSpin" style="display:none;margin-top:8px;font-size:11px;color:var(--txt3)"><span class="spin"></span> Rex is formulating a response...</div>
+</div>
 
-  <script>
-    const plan = [
-      ["TCP/IP, OSI, DNS, HTTP", "Build networking vocabulary. Finish TryHackMe Pre-Security networking modules.", ["Draw TCP/IP vs OSI from memory", "Explain DNS lookup path", "Capture one HTTP request/response safely"]],
-      ["Networking drills", "Ports, protocols, subnet basics, and packet reading.", ["List 30 common ports", "Explain TCP vs UDP", "Write notes in GitHub format"]],
-      ["Linux CLI I", "OverTheWire Bandit 0-6 and Linux navigation.", ["SSH into Bandit", "Use ls/cat/file/find", "Document every level"]],
-      ["Linux CLI II", "Permissions, processes, services, users, and logs.", ["Explain chmod/chown", "Use ps/netstat/ss", "Solve more Bandit levels"]],
-      ["Python basics", "Syntax, files, requests, and sockets for security automation.", ["Write one file parser", "Write one HTTP requests script", "Save code notes"]],
-      ["Python mini-tool", "Build a tiny authorized scanner or log parser.", ["Use only localhost/lab targets", "Handle errors", "Document inputs/outputs"]],
-      ["Home lab setup", "Install VirtualBox/Kali and a legal vulnerable VM or web lab.", ["Record VM setup", "List network mode", "Write safety rules"]],
-      ["Recon with Nmap", "Learn scan types and service enumeration.", ["Run scans against lab target only", "Compare -sV and default", "Explain results"]],
-      ["OSINT and scope", "Understand legal recon and bug bounty scopes.", ["Read 3 disclosed reports", "Write scope rules", "Practice on allowed targets"]],
-      ["OWASP Top 10 I", "PortSwigger SQLi and auth basics.", ["Complete labs", "Write payload notes", "Explain impact safely"]],
-      ["OWASP Top 10 II", "XSS, CSRF, IDOR fundamentals.", ["Complete beginner labs", "Capture request evidence", "Write mitigations"]],
-      ["Burp Suite basics", "Proxy, repeater, intruder basics in labs.", ["Configure browser proxy", "Send request to Repeater", "Document workflow"]],
-      ["Metasploit/DVWA", "Use exploitation frameworks only in local labs.", ["Run one DVWA exercise", "Explain exploit preconditions", "Write remediation"]],
-      ["Privilege escalation basics", "Linux privesc concepts and checklists.", ["Explain SUID", "Explain PATH risk", "Run legal lab exercise"]],
-      ["SOC fundamentals", "Logs, alerts, and SIEM concepts.", ["Read auth logs sample", "Write detection idea", "Map alert to MITRE ATT&CK"]],
-      ["Splunk or log drill", "Search, filter, and explain security logs.", ["Write 5 queries", "Explain false positives", "Save screenshots/notes"]],
-      ["Malware analysis intro", "Static and dynamic concepts without handling real malware.", ["Use safe samples/tutorials", "Explain hashes/strings", "Write safety boundaries"]],
-      ["Incident response", "Triage steps, evidence handling, and timelines.", ["Create IR checklist", "Write timeline example", "Define containment"]],
-      ["picoCTF session", "Solve beginner CTF challenges.", ["Solve at least 3", "Write clean walkthroughs", "Avoid sharing active flags publicly"]],
-      ["CTF hardening", "Redo previous CTFs from memory and improve notes.", ["Redo 2 challenges", "Add missed concepts", "Create glossary"]],
-      ["Portfolio checkpoint", "Publish your first structured GitHub writeups.", ["Save 5 Markdown notes", "Create README index", "Commit changes"]],
-      ["Bug bounty orientation", "HackerOne/Bugcrowd profile, policy reading, report anatomy.", ["Read 5 disclosed reports", "Create report template", "Choose beginner program"]],
-      ["First safe report attempt", "Test only allowed scopes and write professional report draft.", ["No intrusive testing", "Document reproduction", "State impact clearly"]],
-      ["AI security intro", "OWASP LLM Top 10 and prompt injection basics.", ["Summarize top risks", "Run safe toy examples", "Write mitigations"]],
-      ["LLM app threat model", "Map AI risks to a simple app.", ["List assets", "List trust boundaries", "Write 5 abuse cases"]],
-      ["Writeup polish", "Turn lab notes into professional public writing.", ["Rewrite 2 notes", "Add remediation", "Add executive summary"]],
-      ["Portfolio project", "Create one mini security tool or lab guide.", ["README", "Usage", "Limitations and ethics"]],
-      ["Free cert sprint", "ISC2 CC/Cisco/IBM/Google preparation.", ["Register/check voucher", "Complete modules", "Save cert links"]],
-      ["Mock interview", "Explain your work out loud and fix weak areas.", ["Answer 10 questions", "Record weak topics", "Redo one lab"]],
-      ["Final review", "Ship portfolio index and 90-day continuation plan.", ["Save final README", "Commit portfolio", "Plan next 12 weeks"]]
-    ].map((row, i) => ({ day: i + 1, title: row[0], objective: row[1], tasks: row[2] }));
+<!-- TIMER -->
+<div id="pTimer" class="pane">
+  <div class="metric-row" id="timerMetrics"></div>
+  <div class="section-label">Today's training schedule — Day <span id="timerDay">1</span></div>
+  <div class="card" id="scheduleBlocks"></div>
+  <div id="timerAlert"></div>
+</div>
 
-    const state = JSON.parse(localStorage.getItem("rex-state") || "{}");
-    state.day ??= 1;
-    state.completed ??= {};
-    state.scores ??= {};
-    state.regressions ??= 0;
-    state.portfolioCount ??= 0;
-    state.evidenceDrafts ??= {};
-    let serverStatus = null;
+<!-- WRITING LAB -->
+<div id="pWriting" class="pane">
+  <div class="section-label">Generate publication-ready content</div>
+  <div class="card">
+    <div class="section-label">Output type</div>
+    <select id="writeType" style="margin-bottom:12px">
+      <option value="blog">Technical blog post (Medium / GitHub Pages)</option>
+      <option value="ctf">CTF writeup (detailed methodology)</option>
+      <option value="linkedin">LinkedIn progress post</option>
+      <option value="github_readme">GitHub day entry (markdown)</option>
+      <option value="commit">GitHub commit messages (5 commits)</option>
+      <option value="report">Vulnerability report (bug bounty format)</option>
+    </select>
+    <div class="section-label">What you did today — be specific</div>
+    <textarea id="writeContext" placeholder="Example: Day 8. Completed PortSwigger SQL injection module. Did 6 labs including UNION-based injection. Used sqlmap on DVWA. Found login form at /login with unsanitised 'id' parameter. Payloads used: 1' OR 1=1-- and 1' UNION SELECT null,null,null--"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn btn-primary" onclick="generateWriting()" id="genBtn">Generate content →</button>
+      <span id="genSpin" style="display:none;font-size:12px;color:var(--txt2)"><span class="spin"></span> Writing...</span>
+    </div>
+  </div>
+  <div id="writingOutput" style="display:none">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div class="section-label" style="margin:0">Generated output</div>
+      <div class="row">
+        <button class="btn-sm" onclick="copyWriting()">Copy →</button>
+        <button class="btn-sm" onclick="saveWriting()">Save to portfolio</button>
+      </div>
+    </div>
+    <div class="code-block" id="writingContent"></div>
+  </div>
+</div>
 
-    const $ = id => document.getElementById(id);
+<!-- ANALYTICS -->
+<div id="pAnalytics" class="pane">
+  <div class="metric-row" id="analyticsMetrics"></div>
+  <div class="section-label">30-day completion map</div>
+  <div class="chart-wrap" style="height:200px"><canvas id="progressChart" aria-label="Daily completion status chart"></canvas></div>
+  <div class="section-label">Weekly breakdown</div>
+  <div class="chart-wrap" style="height:150px"><canvas id="weekChart" aria-label="Weekly completion bar chart"></canvas></div>
+  <div id="analyticsAlerts"></div>
+</div>
 
-    function saveState() {
-      localStorage.setItem("rex-state", JSON.stringify(state));
-      render();
+<!-- EXHAUSTION OVERRIDE -->
+<div id="pExhaust" class="pane">
+  <div id="exhaustAlert"></div>
+  <button class="btn-big-danger" onclick="triggerExhaust()">I'm exhausted and want to quit today</button>
+  <div id="exhaustChat" style="display:none">
+    <div class="chat-wrap" id="exhaustArea"></div>
+    <div class="row">
+      <input type="text" id="exhaustIn" placeholder="Respond to Rex..." style="flex:1" onkeydown="if(event.key==='Enter')sendExhaust()">
+      <button class="btn btn-primary" onclick="sendExhaust()">Send</button>
+    </div>
+    <div id="exhaustSpin" style="display:none;margin-top:8px;font-size:11px;color:var(--txt3)"><span class="spin"></span> Rex responding...</div>
+  </div>
+  <div class="sep"></div>
+  <div class="section-label">Minimum viable task</div>
+  <p style="font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:10px">When truly exhausted, Rex assigns the bare minimum that still counts as progress — 20–30 minutes max.</p>
+  <button class="btn" onclick="getMVT()" id="mvtBtn">Get minimum viable task →</button>
+  <div id="mvtOut" style="margin-top:10px"></div>
+</div>
+
+<!-- RESOURCES -->
+<div id="pResources" class="pane">
+  <div id="resourcesBody"></div>
+</div>
+
+<!-- PORTFOLIO -->
+<div id="pPortfolio" class="pane">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div class="section-label" style="margin:0">GitHub portfolio entries</div>
+    <div class="row">
+      <button class="btn-sm" onclick="exportAll()">Export full README →</button>
+      <button class="btn-sm" onclick="pushToGitHub()" style="background:var(--green-bg);border-color:var(--green-border);color:var(--green)">Push to GitHub ↗</button>
+      <button class="btn-sm" onclick="clearPortfolio()">Clear all</button>
+    </div>
+  </div>
+  <div id="portList"></div>
+</div>
+
+<!-- NOTES -->
+<div id="pNotes" class="pane">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px">
+    <div class="section-label" style="margin:0">Daily notes — Day <span id="notesDay">1</span></div>
+    <button class="btn-sm" onclick="saveNote()">Save note</button>
+  </div>
+  <textarea id="noteInput" style="min-height:100px;margin-bottom:4px" placeholder="Quick notes: commands that worked, errors you hit, concepts that clicked, things to review..."></textarea>
+  <div class="section-label" style="margin-top:14px">Saved notes</div>
+  <div id="notesList"></div>
+  <div class="sep"></div>
+  <div class="section-label">Command reference for today</div>
+  <div class="code-block" id="cmdRef" style="font-size:11px"></div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /mainApp -->
+
+</div><!-- /shell -->
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const CUR = [
+  {d:1,w:1,t:"Linux & lab setup",tasks:["Complete OverTheWire Bandit levels 0–10 via SSH","Study TCP/IP, DNS, HTTP basics (NetworkChuck YouTube)","Install VirtualBox + Kali Linux VM (4GB RAM min)","Create GitHub repo 'cybersecurity-journey' and commit Day 1 notes"],topics:["ssh bandit connection command","what cat command does","tcp vs udp key difference","http default port number","virtualbox setup steps"]},
+  {d:2,w:1,t:"Linux advanced + Wireshark",tasks:["Complete OverTheWire Bandit levels 11–25","Capture and analyse packets with Wireshark on your lab","Write a basic Python port scanner using socket module","Commit code + notes to GitHub"],topics:["bandit level 11 encoding","wireshark display filter for http","python socket connect syntax","what subnetting is","netstat command purpose"]},
+  {d:3,w:1,t:"Linux privesc + Nmap",tasks:["Study SUID, GUID, cron job abuse, capabilities","Scan lab VMs with Nmap using service detection -sV","Write Python script using requests library","Commit all findings to GitHub"],topics:["what suid bit means","nmap -sV flag purpose","find command for suid files","cron job format","what banner grabbing is"]},
+  {d:4,w:1,t:"Windows basics + TryHackMe",tasks:["Study Active Directory: domain controller, users, groups","Complete TryHackMe Pre-Security path Linux Fundamentals rooms","Study Windows Registry and PowerShell basics","Commit daily notes to GitHub"],topics:["what active directory domain controller does","tryhackme pre-security path","powershell vs cmd difference","windows registry hive","ldap protocol purpose"]},
+  {d:5,w:1,t:"Web fundamentals + crypto",tasks:["Study HTTP request/response (headers, cookies, sessions)","Study symmetric vs asymmetric encryption with examples","Register on HackerOne and Bugcrowd (free)","Apply for ISC2 CC free exam voucher at isc2.org"],topics:["http cookie vs session difference","asymmetric encryption meaning","rsa key pair purpose","what a jwt token contains","tls handshake steps"]},
+  {d:6,w:1,t:"Cloud intro + picoCTF",tasks:["Create AWS Free Tier account, explore IAM console","Understand IAM roles, policies, S3 basics, EC2","Solve 5 picoCTF challenges (any category)","Commit CTF write-ups to GitHub"],topics:["aws iam role vs user","what s3 bucket policy controls","what ec2 instance is","picoctf challenge approach","what cloud region means"]},
+  {d:7,w:1,t:"Week 1 review",tasks:["Finish unfinished OverTheWire and TryHackMe challenges","Solve 5 picoCTF challenges without hints","Write a Week 1 summary blog post on GitHub","Update GitHub README with your Week 1 progress"],topics:["tcp ip four layers","linux file permissions octal","what nmap -sV does","python socket module purpose","dns resolution process"]},
+  {d:8,w:2,t:"SQL injection — PortSwigger",tasks:["Complete PortSwigger SQL injection module (all theory)","Exploit 5+ PortSwigger SQLi labs at apprentice level","Practice manual SQLi on DVWA (low security setting)","Document all payloads used in GitHub notes"],topics:["what sql injection is","union based sqli syntax","what blind sqli means","dvwa sql injection payload","error-based vs blind sqli"]},
+  {d:9,w:2,t:"XSS + Burp Suite",tasks:["Complete PortSwigger XSS module (reflected, stored, DOM)","Configure Burp Suite Community proxy with your browser","Complete 10+ PortSwigger XSS labs","Write XSS cheat sheet and commit to GitHub"],topics:["reflected vs stored xss","how to intercept request in burp","dom xss source and sink","xss cookie stealing payload","set burp as browser proxy"]},
+  {d:10,w:2,t:"Auth attacks + IDOR",tasks:["Complete 5+ PortSwigger authentication vulnerability labs","Study IDOR, complete 5+ PortSwigger access control labs","Attempt first HackTheBox Easy web challenge","Commit all lab notes to GitHub"],topics:["what idor vulnerability is","session fixation attack","jwt none algorithm attack","broken authentication meaning","find idor in api endpoint"]},
+  {d:11,w:2,t:"Recon methodology + Metasploit",tasks:["Master 10 Google dork operators for recon","Set up Metasploit and exploit Metasploitable 2 VM","Complete TryHackMe Metasploit rooms","Document full recon methodology in GitHub"],topics:["google dork for admin pages","metasploit use module syntax","msfconsole search command","vsftpd 2.3.4 exploit module","auxiliary module in metasploit"]},
+  {d:12,w:2,t:"Password attacks + OSINT",tasks:["Practice hash cracking with Hashcat on MD5 and SHA1","Study OSINT: Shodan, theHarvester, LinkedIn recon","Read 10 public HackerOne Hacktivity disclosed reports","Commit OSINT methodology notes to GitHub"],topics:["hashcat mode number for md5","what shodan searches for","theharvester command syntax","osint vs active recon","what a hash cracking wordlist is"]},
+  {d:13,w:2,t:"Active Directory attacks",tasks:["Complete TryHackMe Active Directory rooms","Study Kerberoasting and AS-REP roasting with examples","Practice SMB and FTP misconfiguration exploitation in lab","Commit AD attack chain notes to GitHub"],topics:["what kerberoasting is","as-rep roasting vs kerberoasting","smbclient command to list shares","what impacket toolkit is","why ad is valuable to attackers"]},
+  {d:14,w:2,t:"Full mini penetration test",tasks:["Complete one HackTheBox Easy machine from recon to root","Write a professional pentest report (exec + technical + remediation)","Commit the report to GitHub as markdown","Self-assess: can you find SQLi, use Burp, write a report?"],topics:["pentest phases in order","nmap -A flag what it enables","what privilege escalation means","executive summary for non-technical audience","what remediation recommendation includes"]},
+  {d:15,w:3,t:"SOC + SIEM operations",tasks:["Install Splunk Free and configure a data source input","Complete 3+ TryHackMe SOC Level 1 rooms","Write first SPL query and create a Splunk dashboard","Map one Week 2 attack to MITRE ATT&CK framework"],topics:["what siem tool does","splunk spl query example","mitre attck tactic vs technique","what soc analyst does daily","log source types siem ingests"]},
+  {d:16,w:3,t:"Threat intel + malware analysis",tasks:["Study MITRE ATT&CK: tactics, techniques, sub-techniques","Analyse 2 malware samples in Any.Run free sandbox","Read one free Mandiant or CrowdStrike threat report","Document findings with ATT&CK technique IDs in GitHub"],topics:["mitre attck t1059 technique","any.run sandbox what it shows","ioc vs ttp difference","threat intelligence feed purpose","map malware behavior to attck"]},
+  {d:17,w:3,t:"Incident response + forensics",tasks:["Study NIST Incident Response framework 4 phases","Complete TryHackMe Digital Forensics rooms","Practice disk forensics with Autopsy on a sample image","Push harder PortSwigger labs: authentication practitioner"],topics:["nist ir four phases","what autopsy forensics tool does","volatility imageinfo command","extract artifacts from disk image","chain of custody meaning"]},
+  {d:18,w:3,t:"AWS cloud security",tasks:["Deep dive AWS IAM: roles, policies, trust relationships","Enable CloudTrail and GuardDuty on your AWS free account","Deliberately misconfigure an S3 bucket then detect and fix","Document cloud attack paths and misconfigs in GitHub"],topics:["what cloudtrail logs","aws guardduty alerts","s3 acl vs bucket policy","iam privilege escalation path","aws shared responsibility model"]},
+  {d:19,w:3,t:"HTB machine #2 + AI security",tasks:["Complete second HackTheBox Easy machine (no walkthroughs first 45 min)","Study OWASP LLM Top 10 especially prompt injection","Write comparison: classical web bugs vs LLM-specific vulnerabilities","Update GitHub with HTB methodology writeup"],topics:["owasp llm top 10 first item","what prompt injection achieves","llm jailbreak vs sql injection","indirect prompt injection","owasp llm item count"]},
+  {d:20,w:3,t:"Zero Trust + vulnerability chaining",tasks:["Study Zero Trust Architecture core principles","Practice attack chaining: XSS to session hijack in your lab","Study DevSecOps: what SAST and DAST mean with tool examples","Commit attack chain methodology to GitHub"],topics:["zero trust never trust principle","sast vs dast differences","how to chain xss to account takeover","devsecops definition","what microsegmentation means"]},
+  {d:21,w:3,t:"Full engagement simulation",tasks:["Choose VulnHub VM — treat as real client engagement","Write a scoping document before starting (rules of engagement)","Produce full report: exec summary + technical + remediation + risk ratings","Compile all Week 3 materials into portfolio folder on GitHub"],topics:["rules of engagement document contents","cvss score components and scale","how to rate vulnerability severity","risk rating in pentest report","finding vs vulnerability difference"]},
+  {d:22,w:4,t:"Bug bounty foundations",tasks:["Complete HackerOne Hacker101 free course all modules","Study bug bounty scoping: in-scope vs out-of-scope","Read scope documents of 3 different bug bounty programs","Register on Open Bug Bounty — start immediately, no registration"],topics:["what hacker101 teaches","how to read bug bounty scope","what vdp means","valid high-quality bug report qualities","open bug bounty platform rules"]},
+  {d:23,w:4,t:"First real bug bounty hunt",tasks:["Select one VDP target — no pay, zero competition, Hall of Fame","Map one complete application workflow before testing","Test for IDOR, basic XSS, and information disclosure","Document findings with screenshots and HTTP request logs"],topics:["what subdomain enumeration reveals","find idor in api endpoints","information disclosure in bounty","document a bug bounty finding","what scope violation means"]},
+  {d:24,w:4,t:"AI security lab + ISC2 CC prep",tasks:["Build a basic prompt injection test against any public LLM","Study ISC2 CC domains: Security Principles, Network Security, Access Controls","Complete 50+ ISC2 CC practice questions with review","Schedule ISC2 CC exam at isc2.org using your free voucher"],topics:["isc2 cc exam domains","what prompt injection achieves","register isc2 cc free voucher","isc2 cc question count and time","security principles domain topics"]},
+  {d:25,w:4,t:"Portfolio build + Python tool",tasks:["Write clean READMEs for all GitHub folders","Build one Python security tool: Nmap parser OR port sweeper","Set up LinkedIn: headline, ISC2 CC in progress, TryHackMe badge","Push Python tool to GitHub with documentation and README"],topics:["good github security repo readme","python subprocess to run nmap","parse nmap xml output in python","linkedin headline for security learner","what makes security tool portfolio valuable"]},
+  {d:26,w:4,t:"CTF competition + writeup",tasks:["Join a live or archived CTF on CTFtime.org","Solve at least 2 challenges (web + forensics preferred)","Write a detailed CTF writeup: problem, approach, tools, solution","Publish writeup on GitHub or Medium with methodology"],topics:["what ctftime.org lists","how to write good ctf writeup","steganography in ctf challenges","find flags in web ctf","tools used in ctf web challenges"]},
+  {d:27,w:4,t:"Responsible disclosure + open source",tasks:["If bug found: write CVSS-scored vulnerability report","Find a security tool on GitHub and open an issue or small PR","Study Fortinet NSE 1-3 material (fortinet.com — free)","Continue ISC2 CC study: Security Operations domain"],topics:["cvss base metric groups","how to write responsible disclosure","fortinet nse 1 topics","professional vulnerability report qualities","isc2 cc security operations topics"]},
+  {d:28,w:4,t:"ISC2 CC exam + blog post",tasks:["Take ISC2 CC exam: 100 questions, 2 hours, free with voucher","Write technical blog post: what 30 days of cybersecurity taught you","Update LinkedIn with ISC2 CC certification once passed","Prepare your 'vulnerability I found' story for interviews"],topics:["isc2 cc passing score","what cc certification demonstrates","structure a technical security blog post","explain lab findings in interview","what linkedin certification section shows"]},
+  {d:29,w:4,t:"Job applications + interview prep",tasks:["Apply to 5 security roles on Naukri, LinkedIn, Indeed","Practice 10 common cybersecurity interview questions out loud","Join nullcon community, local BSides, TryHackMe Discord","Write 90-day specialization plan: SOC vs Bug Bounty vs Cloud vs AI"],topics:["junior soc analyst requirements","common cybersecurity interview questions","what nullcon conference is","answer tell me about a vulnerability you found","soc analyst vs penetration tester role"]},
+  {d:30,w:4,t:"Final assessment + Day 31 plan",tasks:["Complete penetration test on VulnHub VM: scoping to report","Conduct personal skills audit: list capabilities and gaps","Write 90-day specialization plan with weekly milestones","Commit everything — this is your starting point, not your finish line"],topics:["all pentest phases","how to identify skill gaps","what oscp certification covers","soc analyst vs pentester career","what makes someone elite long-term"]}
+];
+
+const SCHEDULE = [
+  {id:'s1',time:'06:00–06:30',label:'Physical reset',desc:'Exercise + breakfast. Non-negotiable.',dur:30},
+  {id:'s2',time:'06:30–07:00',label:'Threat intel feed',desc:'1 CVE advisory + 1 security news item.',dur:30},
+  {id:'s3',time:'07:00–12:00',label:'Deep theory block',desc:'TryHackMe / PortSwigger / YouTube. No phone.',dur:300},
+  {id:'s4',time:'12:00–13:00',label:'Lunch + passive',desc:'Security podcast while resting.',dur:60},
+  {id:'s5',time:'13:00–18:00',label:'Hands-on labs',desc:'CTFs / HTB / DVWA / Burp practice.',dur:300},
+  {id:'s6',time:'18:00–19:00',label:'Dinner break',desc:'Mandatory mental recovery.',dur:60},
+  {id:'s7',time:'19:00–22:00',label:'Creation block',desc:'GitHub writeups / Python tools / bug bounty.',dur:180},
+  {id:'s8',time:'22:00–22:30',label:'Daily review',desc:'Obsidian notes. Set 3 objectives for tomorrow.',dur:30}
+];
+
+const DAY_RES = {
+  1:{links:[{n:'OverTheWire Bandit',u:'https://overthewire.org/wargames/bandit/',t:'Linux wargame — start level 0'},{n:'NetworkChuck TCP/IP',u:'https://www.youtube.com/watch?v=PhjHXeMNpp8',t:'Free networking fundamentals'},{n:'VirtualBox',u:'https://www.virtualbox.org/wiki/Downloads',t:'Free VM hypervisor'},{n:'Kali Linux',u:'https://www.kali.org/get-kali/',t:'Penetration testing OS'}],cmds:['ssh bandit0@bandit.labs.overthewire.org -p 2220','cat readme','ls -la','file ./-filename','find . -size 1033c']},
+  8:{links:[{n:'PortSwigger SQLi',u:'https://portswigger.net/web-security/sql-injection',t:'Start here — all theory + labs'},{n:'DVWA',u:'https://github.com/digininja/DVWA',t:'Vulnerable web app for practice'},{n:'HackerOne Hacktivity',u:'https://hackerone.com/hacktivity',t:'Real disclosed bug reports'}],cmds:["' OR 1=1--","' UNION SELECT null,null,null--","' AND 1=2 UNION SELECT table_name,null FROM information_schema.tables--","sqlmap -u 'http://target/page?id=1' --dbs","sqlmap -u 'http://target/page?id=1' -D dbname --tables"]},
+  9:{links:[{n:'PortSwigger XSS',u:'https://portswigger.net/web-security/cross-site-scripting',t:'XSS theory + 30+ labs'},{n:'Burp Suite Community',u:'https://portswigger.net/burp/communitydownload',t:'Free web proxy'}],cmds:["<script>alert(1)<\/script>","<img src=x onerror=alert(1)>","javascript:alert(document.cookie)","<svg onload=alert(1)>","';alert(String.fromCharCode(88,83,83))//"]},
+  22:{links:[{n:'Hacker101',u:'https://www.hacker101.com/ctf',t:'Free bug bounty learning CTF'},{n:'Open Bug Bounty',u:'https://www.openbugbounty.org/',t:'No registration — start hunting'},{n:'HackerOne',u:'https://hackerone.com/programs',t:'Main bug bounty platform'}],cmds:['subfinder -d target.com','httpx -list domains.txt','nuclei -target https://target.com','ffuf -w wordlist.txt -u https://target/FUZZ','waybackurls target.com | tee urls.txt']}
+};
+
+const DEFAULT_RES = {
+  links:[{n:'TryHackMe',u:'https://tryhackme.com',t:'Guided rooms — free tier'},{n:'PortSwigger Academy',u:'https://portswigger.net/web-security',t:'Best free web security labs'},{n:'picoCTF',u:'https://picoctf.org',t:'Beginner CTF'},{n:'HackTheBox',u:'https://www.hackthebox.com',t:'Realistic machines'},{n:'ISC2 CC free exam',u:'https://www.isc2.org/landing/1mcc',t:'Free certification voucher'},{n:'GTFOBins',u:'https://gtfobins.github.io',t:'Linux privesc reference'},{n:'PayloadsAllTheThings',u:'https://github.com/swisskyrepo/PayloadsAllTheThings',t:'Payload cheat sheets'},{n:'HackTricks',u:'https://book.hacktricks.xyz',t:'Pentesting methodology bible'}],
+  cmds:['nmap -sV target','burpsuite &','msfconsole','python3 -c "import pty; pty.spawn(\'/bin/bash\')"','nc -lvnp 4444']
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let S = {day:1, streak:0, statuses:{}, portfolio:[], notes:[], writings:[], blockTimers:{}};
+let chatMsgs = [];
+let exhaustMsgs = [];
+let timerInterval = null;
+let activeBlockId = null;
+
+const LS_KEY = 'rex_v1';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) S = {...S, ...JSON.parse(raw)};
+    const cm = localStorage.getItem('rex_chat_' + S.day);
+    if (cm) chatMsgs = JSON.parse(cm);
+  } catch(e) {}
+}
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    localStorage.setItem('rex_chat_' + S.day, JSON.stringify(chatMsgs));
+  } catch(e) {}
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────
+let isLoggedIn = false;
+
+async function post(url, body) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if (r.status === 401) { isLoggedIn = false; showLogin(); throw new Error('Session expired'); }
+  const d = await r.json();
+  if (d.error && !d.text) throw new Error(typeof d.error === 'string' ? d.error : JSON.stringify(d.error));
+  return d;
+}
+
+async function doLogin() {
+  const pw = document.getElementById('keyInput').value.trim();
+  if (!pw) return;
+  try {
+    await post('/api/login', { password: pw });
+    isLoggedIn = true;
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    loadState(); renderAll();
+  } catch(e) {
+    document.getElementById('loginError').innerHTML = '<div class="alert a-err">'+e.message+'</div>';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', {method:'POST'});
+  isLoggedIn = false;
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+async function callAPI(system, messages, maxTokens = 900) {
+  const d = await post('/api/chat', { system, messages, maxTokens });
+  if (d.error && d.text) return d.text;
+  if (d.text) return d.text;
+  throw new Error(d.error || 'No response');
+}
+
+// ─── RENDER ALL ───────────────────────────────────────────────────────────────
+function renderAll() {
+  updateHeader();
+  renderDots();
+  renderMission();
+  renderTimer();
+  renderNotes();
+}
+
+function updateHeader() {
+  const approved = Object.keys(S.statuses).filter(k => S.statuses[k]?.approved && !isNaN(k)).length;
+  document.getElementById('dayBadge').textContent = `Day ${S.day} / 30`;
+  document.getElementById('hStreak').textContent = S.streak;
+  document.getElementById('hDone').textContent = approved;
+  document.getElementById('hPct').textContent = Math.round((approved/30)*100) + '%';
+  document.getElementById('mainProg').style.width = Math.round((approved/30)*100) + '%';
+}
+
+function renderDots() {
+  const el = document.getElementById('dayDots');
+  el.innerHTML = '';
+  for (let i = 1; i <= 30; i++) {
+    const d = document.createElement('div');
+    let cls = 'dd';
+    if (i === S.day) cls += ' current';
+    else if (S.statuses[i]?.approved) cls += ' approved';
+    else if (i < S.day && !S.statuses[i]?.approved) cls += ' missed';
+    else if (i > S.day) cls += ' future';
+    d.className = cls;
+    d.textContent = i;
+    if (i <= S.day) d.onclick = () => previewDay(i);
+    el.appendChild(d);
+  }
+  document.getElementById('missionMetrics').innerHTML = `
+    <div class="metric"><div class="m-val">${S.day}</div><div class="m-lbl">Current day</div></div>
+    <div class="metric"><div class="m-val">${S.streak}</div><div class="m-lbl">Streak</div></div>
+    <div class="metric"><div class="m-val">${Object.keys(S.statuses).filter(k=>S.statuses[k]?.approved&&!isNaN(k)).length}</div><div class="m-lbl">Days verified</div></div>
+    <div class="metric"><div class="m-val">${(S.portfolio||[]).length}</div><div class="m-lbl">Portfolio entries</div></div>`;
+}
+
+function renderMission() {
+  const day = CUR[S.day-1];
+  const approved = S.statuses[S.day]?.approved;
+  let h = `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Day ${day.d} · Week ${day.w} — ${day.t}</div>
+      <span class="badge ${approved?'b-ok':'b-warn'}">${approved?'Approved':'Pending verification'}</span>
+    </div>`;
+  day.tasks.forEach(t => {
+    h += `<div class="task-row"><div class="chk ${approved?'ok':''}">✓</div><div class="task-txt ${approved?'done':''}">${t}</div></div>`;
+  });
+  h += `</div>`;
+  if (!approved) {
+    h += `<div style="padding:12px 16px;border:0.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg2);font-size:12px;color:var(--txt2);line-height:1.7">
+      Complete the tasks above. Then go to <strong style="color:var(--txt)">Verify with Rex</strong> and submit detailed evidence. Name commands, describe outputs. Rex interrogates you. Only his approval marks the day complete and generates your GitHub portfolio entry.<br><br>
+      <button class="btn btn-primary" onclick="sw('verify')">Go to verify →</button>
+    </div>`;
+  } else {
+    h += `<div class="alert a-ok">Day ${day.d} verified and locked. Streak: ${S.streak}. <button class="btn-sm" style="margin-left:8px" onclick="advDay()">Advance to Day ${S.day+1} →</button></div>`;
+  }
+  document.getElementById('missionBody').innerHTML = h;
+}
+
+function previewDay(d) {
+  const day = CUR[d-1];
+  const approved = S.statuses[d]?.approved;
+  let h = `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Day ${d} — ${day.t}</div>
+      <span class="badge ${approved?'b-ok':d<S.day?'b-err':'b-mute'}">${approved?'Approved':d<S.day?'Incomplete':'Upcoming'}</span>
+    </div>`;
+  day.tasks.forEach(t => {
+    h += `<div class="task-row"><div class="chk ${approved?'ok':''}">✓</div><div class="task-txt">${t}</div></div>`;
+  });
+  h += `</div><button class="btn-sm" onclick="renderMission()">← Back to current day</button>`;
+  document.getElementById('missionBody').innerHTML = h;
+}
+
+function advDay() {
+  if (S.day < 30) {
+    S.day++; chatMsgs = []; saveState(); renderAll(); sw('mission');
+  } else {
+    alert('30-day program complete. The real race starts now. Do not stop.');
+  }
+}
+
+// ─── VERIFY WITH REX ─────────────────────────────────────────────────────────
+const REX_SYS = `You are Commander Rex, an elite cybersecurity drill instructor. STRICT. DEMANDING. Zero tolerance for vague answers.
+
+RULES:
+- Always address the user as "Recruit"
+- Military briefing style: concise, direct sentences
+- NEVER accept vague claims — demand specifics
+- When they mention a tool: ask what EXACT command they ran and what the output looked like
+- When they mention a concept: ask them to define it precisely with a concrete example
+- "I was tired" → "Everyone is tired. Irrelevant."
+- "I forgot" → "You didn't forget. You didn't learn it. Do it again."
+
+VERIFICATION FLOW:
+- Read evidence carefully
+- Ask 2-3 specific follow-up questions testing real understanding
+- If vague or wrong: state exactly what was wrong and what to answer properly
+- If genuine technical understanding demonstrated: approve
+
+OUTPUT FORMAT:
+- When approving (after sufficient verification): end with exactly: [VERDICT:APPROVED|brief summary]
+- When rejecting: end with: [VERDICT:REJECTED|specific reason and what to redo]
+- Mid-interrogation: do NOT include any VERDICT line
+- Never approve on the first exchange unless evidence is extremely detailed`;
+
+async function submitEvidence() {
+  const ev = document.getElementById('evInput').value.trim();
+  if (ev.length < 60) {
+    document.getElementById('verifyAlert').innerHTML = '<div class="alert a-err">Recruit. That is inadequate. Minimum detail required. Name specific commands, outputs, and what you understood. Try again.</div>';
+    return;
+  }
+  document.getElementById('verifyAlert').innerHTML = '';
+  document.getElementById('subBtn').disabled = true;
+  document.getElementById('subSpin').style.display = 'inline';
+  const day = CUR[S.day-1];
+  const msg = `Day ${day.d} — ${day.t}\n\nRequired tasks:\n${day.tasks.map((t,i)=>`${i+1}. ${t}`).join('\n')}\n\nRecruit's evidence:\n${ev}`;
+  chatMsgs = [{role:'user', content:msg}];
+  try {
+    const res = await callAPI(REX_SYS, chatMsgs);
+    chatMsgs.push({role:'assistant', content:res});
+    saveState();
+    sw('rex');
+    renderChat();
+    checkVerdict(res);
+  } catch(e) {
+    document.getElementById('verifyAlert').innerHTML = `<div class="alert a-err">API error: ${e.message}</div>`;
+  }
+  document.getElementById('subBtn').disabled = false;
+  document.getElementById('subSpin').style.display = 'none';
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('chatIn');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  if (chatMsgs.length === 0) { appendChat('System','Submit evidence in the Verify tab first, Recruit.',true); return; }
+  chatMsgs.push({role:'user', content:txt});
+  appendChat('Recruit', txt, false);
+  document.getElementById('chatSpin').style.display = 'block';
+  try {
+    const res = await callAPI(REX_SYS, chatMsgs);
+    chatMsgs.push({role:'assistant', content:res});
+    appendChat('Commander Rex', res, true);
+    checkVerdict(res);
+    saveState();
+  } catch(e) { appendChat('System', 'API error: ' + e.message, true); }
+  document.getElementById('chatSpin').style.display = 'none';
+}
+
+function renderChat() {
+  const area = document.getElementById('chatArea');
+  area.innerHTML = '';
+  chatMsgs.forEach(m => {
+    const isRex = m.role === 'assistant';
+    const clean = m.content.replace(/\[VERDICT:[^\]]+\]/g,'').trim();
+    if (!clean) return;
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<div class="msg-from ${isRex?'rex-from':'you-from'}">${isRex?'Commander Rex':'Recruit'}</div><div class="msg-body ${isRex?'rex-body':''}">${clean}</div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+function appendChat(from, text, isRex) {
+  const area = document.getElementById('chatArea');
+  const clean = text.replace(/\[VERDICT:[^\]]+\]/g,'').trim();
+  if (!clean) return;
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `<div class="msg-from ${isRex?'rex-from':'you-from'}">${from}</div><div class="msg-body ${isRex?'rex-body':''}">${clean}</div>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function checkVerdict(text) {
+  if (text.includes('[VERDICT:APPROVED|')) {
+    const sum = text.match(/\[VERDICT:APPROVED\|(.+?)\]/)?.[1] || 'Tasks verified';
+    handleApproval(sum);
+  } else if (text.includes('[VERDICT:REJECTED|')) {
+    const reason = text.match(/\[VERDICT:REJECTED\|(.+?)\]/)?.[1] || 'Insufficient evidence';
+    handleReject(reason);
+  }
+}
+
+async function handleApproval(summary) {
+  S.statuses[S.day] = {approved:true, summary, at:new Date().toISOString()};
+  S.streak++;
+  const day = CUR[S.day-1];
+  try {
+    const portSys = 'You generate professional GitHub-style cybersecurity learning journal entries. Output clean markdown only. No preamble. No code fences.';
+    const portMsg = `Generate a GitHub README-style entry:\nDay: ${day.d}/30\nTitle: ${day.t}\nWeek: ${day.w}/4\nTasks: ${day.tasks.join(' | ')}\nVerified summary: ${summary}\n\nFormat:\n## Day ${day.d} — ${day.t}\n**Week ${day.w}/4 · Verified by Commander Rex**\n\n### Tasks completed\n[bullet list]\n\n### Technical evidence\n[2-3 sentences based on summary]\n\n### Key concepts\n[3-4 bullets from: ${day.topics.join(', ')}]\n\n### Tools used\n[relevant tools and commands]\n\n### Takeaways\n[2-3 sentences]\n\n---`;
+    const entry = await callAPI(portSys, [{role:'user',content:portMsg}], 700);
+    S.portfolio = (S.portfolio||[]).filter(e => e.d !== S.day);
+    S.portfolio.push({d:S.day, title:day.t, content:entry, at:new Date().toISOString()});
+  } catch(e) {}
+  saveState();
+  updateHeader();
+  renderDots();
+  const area = document.getElementById('chatArea');
+  const d = document.createElement('div');
+  d.className = 'alert a-ok';
+  d.style.marginTop = '10px';
+  d.innerHTML = `Day ${S.day} approved by Commander Rex. Portfolio entry generated.<br>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" onclick="advDay()">Advance to Day ${S.day+1} →</button>
+      <button class="btn" onclick="sw('portfolio')">View portfolio →</button>
+    </div>`;
+  area.after(d);
+}
+
+function handleReject(reason) {
+  const area = document.getElementById('chatArea');
+  const d = document.createElement('div');
+  d.className = 'alert a-err';
+  d.style.marginTop = '10px';
+  d.innerHTML = `Submission rejected. Reason: ${reason}<br><span style="font-size:11px">Complete the required work and resubmit in the Verify tab.</span>`;
+  area.after(d);
+  saveState();
+}
+
+// ─── TIMER ────────────────────────────────────────────────────────────────────
+function fmtTime(sec) {
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  if(h>0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function getTotalHours() {
+  return (SCHEDULE.reduce((t,b) => t + ((S.blockTimers||{})[b.id]?.elapsed||0), 0) / 3600).toFixed(1);
+}
+function getBlocksDone() {
+  return SCHEDULE.filter(b => (S.blockTimers||{})[b.id]?.done).length;
+}
+
+function renderTimer() {
+  document.getElementById('timerDay').textContent = S.day;
+  const h = getTotalHours(), bd = getBlocksDone();
+  document.getElementById('timerMetrics').innerHTML = `
+    <div class="metric"><div class="m-val">${h}h</div><div class="m-lbl">Hours logged</div></div>
+    <div class="metric"><div class="m-val">${bd}/${SCHEDULE.length}</div><div class="m-lbl">Blocks done</div></div>
+    <div class="metric"><div class="m-val">${S.streak}</div><div class="m-lbl">Streak</div></div>
+    <div class="metric"><div class="m-val">${Math.round((bd/SCHEDULE.length)*100)}%</div><div class="m-lbl">Day progress</div></div>`;
+
+  const c = document.getElementById('scheduleBlocks');
+  c.innerHTML = '';
+  if (!S.blockTimers) S.blockTimers = {};
+  SCHEDULE.forEach(b => {
+    const st = S.blockTimers[b.id] || {elapsed:0, done:false, running:false};
+    const pct = Math.min(100, Math.round((st.elapsed/(b.dur*60))*100));
+    const row = document.createElement('div');
+    row.className = 'block-row'; row.id = 'brow_'+b.id;
+    row.innerHTML = `
+      <div class="btime">${b.time}</div>
+      <div class="btask">
+        <strong>${b.label}</strong>
+        <span>${b.desc}</span>
+        <div class="prog-bar"><div class="prog-fill" id="pf_${b.id}" style="width:${pct}%;${st.done?'background:var(--green)':''}"></div></div>
+      </div>
+      <div class="btimer" id="tm_${b.id}">${fmtTime(st.elapsed)}</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${st.done
+          ? '<span class="badge b-ok">Done</span>'
+          : `<button class="btn-sm" onclick="toggleBlock('${b.id}')" id="sb_${b.id}">${st.running?'Pause':'Start'}</button>
+             <button class="btn-sm" onclick="completeBlock('${b.id}')">Done</button>`}
+      </div>`;
+    c.appendChild(row);
+  });
+}
+
+function toggleBlock(id) {
+  if (!S.blockTimers) S.blockTimers = {};
+  const st = S.blockTimers[id] || {elapsed:0, done:false, running:false};
+  if (st.running) {
+    st.running = false;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    activeBlockId = null;
+  } else {
+    if (activeBlockId && activeBlockId !== id && S.blockTimers[activeBlockId]) {
+      S.blockTimers[activeBlockId].running = false;
+      const prevBtn = document.getElementById('sb_'+activeBlockId);
+      if (prevBtn) prevBtn.textContent = 'Start';
     }
+    st.running = true; activeBlockId = id;
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => tickBlock(id), 1000);
+  }
+  S.blockTimers[id] = st;
+  const btn = document.getElementById('sb_'+id);
+  if (btn) btn.textContent = st.running ? 'Pause' : 'Start';
+  saveState();
+}
 
-    function currentTask() {
-      return plan[state.day - 1];
-    }
+function tickBlock(id) {
+  if (!S.blockTimers?.[id]) return;
+  S.blockTimers[id].elapsed++;
+  const b = SCHEDULE.find(x=>x.id===id);
+  const st = S.blockTimers[id];
+  const pct = Math.min(100, Math.round((st.elapsed/(b.dur*60))*100));
+  const tmEl = document.getElementById('tm_'+id);
+  const pfEl = document.getElementById('pf_'+id);
+  if (tmEl) tmEl.textContent = fmtTime(st.elapsed);
+  if (pfEl) pfEl.style.width = pct + '%';
+  if (st.elapsed % 300 === 0) saveState();
+}
 
-    async function loadStatus() {
-      const response = await fetch("/api/status");
-      serverStatus = await response.json();
-      renderAuth();
-      renderProviderStatus();
-      return serverStatus;
-    }
+function completeBlock(id) {
+  if (!S.blockTimers) S.blockTimers = {};
+  if (S.blockTimers[id]?.running) toggleBlock(id);
+  if (!S.blockTimers[id]) S.blockTimers[id] = {elapsed:0, done:false, running:false};
+  S.blockTimers[id].done = true;
+  saveState(); renderTimer();
+  const bd = getBlocksDone();
+  if (bd === SCHEDULE.length) {
+    document.getElementById('timerAlert').innerHTML = '<div class="alert a-ok" style="margin-top:10px">Full schedule complete. Verify your work with Rex now.</div>';
+  }
+}
 
-    function renderAuth() {
-      const authenticated = Boolean(serverStatus?.authenticated);
-      $("loginShell").classList.toggle("hidden", authenticated);
-      $("appShell").classList.toggle("hidden", !authenticated);
-      const configured = Boolean(serverStatus?.authConfigured);
-      $("loginStatus").textContent = configured
-        ? JSON.stringify(providerSummary(), null, 2)
-        : "REX_ADMIN_PASSWORD and SESSION_SECRET are not configured yet.";
-      if (authenticated) render();
-    }
+// ─── WRITING LAB ──────────────────────────────────────────────────────────────
+async function generateWriting() {
+  const type = document.getElementById('writeType').value;
+  const ctx = document.getElementById('writeContext').value.trim();
+  if (ctx.length < 40) { alert('Provide more context. Rex needs specific details about what you actually did.'); return; }
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('genSpin').style.display = 'inline';
+  document.getElementById('writingOutput').style.display = 'none';
+  const prompts = {
+    blog: 'Write a technical cybersecurity blog post. Clear, educational, personal tone. Include what you learned, specific commands/tools, what surprised you, key takeaway. ~450 words. Markdown with headers.',
+    ctf: 'Write a detailed CTF writeup. Include challenge description, reconnaissance, tools with exact commands, thought process, how you found the flag, what you learned. Clean markdown with code blocks.',
+    linkedin: 'Write a LinkedIn post about cybersecurity learning progress. Professional but authentic. Specific technical achievement, lesson learned, genuine insight. End with a question. 150-200 words. Max 3 relevant hashtags.',
+    github_readme: 'Write a GitHub README-style learning journal entry in markdown. Day number, tasks completed, commands/tools used, concepts learned, key takeaways, what to focus on next. Professional and technical.',
+    commit: 'Write 5 distinct GitHub commit messages for a cybersecurity learning day. Conventional commits format (feat/docs/add/fix/chore prefix). Each describes a real artifact. One per line. Short and specific.',
+    report: 'Write a professional vulnerability report in bug bounty format. Title, severity (CVSS estimate), summary, steps to reproduce (numbered), proof of concept, impact, remediation recommendation.'
+  };
+  try {
+    const res = await callAPI(
+      'You are a professional cybersecurity technical writer. Output clean markdown only. No preamble. Be specific, technical, and avoid generic filler.',
+      [{role:'user', content:`${prompts[type]}\n\nContext from recruit (Day ${S.day} of 30-day program):\n${ctx}`}], 1000
+    );
+    document.getElementById('writingContent').textContent = res;
+    document.getElementById('writingOutput').style.display = 'block';
+    document.getElementById('writingOutput')._w = {type, content:res, day:S.day, at:new Date().toISOString()};
+  } catch(e) { alert('Generation failed: ' + e.message); }
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genSpin').style.display = 'none';
+}
 
-    function providerSummary() {
-      const providers = serverStatus?.providers || {};
-      return Object.fromEntries(Object.entries(providers).map(([key, value]) => [key, {
-        configured: value.configured,
-        model: value.model || "",
-        repo: value.repo || ""
-      }]));
-    }
+function copyWriting() {
+  const el = document.getElementById('writingContent');
+  navigator.clipboard.writeText(el.textContent)
+    .then(() => alert('Copied! Paste into GitHub, Medium, or LinkedIn.'))
+    .catch(() => alert('Copy failed — select text manually.'));
+}
 
-    function renderProviderStatus() {
-      const providers = serverStatus?.providers || {};
-      $("providerStatus").innerHTML = Object.entries(providers).map(([key, value]) => `
-        <div class="card">
-          <div class="status-line">
-            <strong>${key}</strong>
-            <span class="badge ${value.configured ? "ok" : "bad"}">${value.configured ? "configured" : "missing"}</span>
-          </div>
-          <div class="small muted">${value.role || ""}</div>
-          <div class="small muted">${value.model || [value.owner, value.repo, value.branch].filter(Boolean).join("/")}</div>
+function saveWriting() {
+  const w = document.getElementById('writingOutput')._w;
+  if (!w) return;
+  if (!S.writings) S.writings = [];
+  S.writings = S.writings.filter(x => !(x.day===w.day && x.type===w.type));
+  S.writings.push(w);
+  saveState();
+  alert('Saved to writings. It will appear in the Writing section of your portfolio.');
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+function renderAnalytics() {
+  const approved = Object.keys(S.statuses).filter(k=>!isNaN(k)&&S.statuses[k]?.approved).map(Number);
+  const missed = [];
+  for (let i=1; i<S.day; i++) { if (!approved.includes(i)) missed.push(i); }
+
+  document.getElementById('analyticsMetrics').innerHTML = `
+    <div class="metric"><div class="m-val">${approved.length}</div><div class="m-lbl">Days verified</div></div>
+    <div class="metric"><div class="m-val">${missed.length}</div><div class="m-lbl">Days missed</div></div>
+    <div class="metric"><div class="m-val">${S.streak}</div><div class="m-lbl">Current streak</div></div>
+    <div class="metric"><div class="m-val">${Math.round((approved.length/30)*100)}%</div><div class="m-lbl">Complete</div></div>`;
+
+  const labels = Array.from({length:30}, (_,i) => 'D'+(i+1));
+  const data = Array.from({length:30}, (_,i) => {
+    const d=i+1;
+    if (approved.includes(d)) return 2;
+    if (d===S.day) return 1;
+    if (d<S.day) return 0.4;
+    return 0;
+  });
+  const colors = data.map(v => v===2?'#639922':v===1?'#378ADD':v===0.4?'#E24B4A':'#D3D1C7');
+
+  const ctx1 = document.getElementById('progressChart').getContext('2d');
+  if (window._rc1) window._rc1.destroy();
+  window._rc1 = new Chart(ctx1, {
+    type:'bar',
+    data:{labels, datasets:[{data, backgroundColor:colors, borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const v=c.parsed.y;return v===2?'Verified':v===1?'Current day':v===0.4?'Missed':'Upcoming'}}}},scales:{x:{ticks:{font:{size:9},maxRotation:0},grid:{display:false}},y:{display:false,max:2.5}}}
+  });
+
+  const wl = ['Week 1','Week 2','Week 3','Week 4'];
+  const wd = wl.map((_,wi) => {
+    const s=wi*7+1, e=Math.min(wi*7+7,30);
+    return Array.from({length:e-s+1},(_,i)=>approved.includes(s+i)?1:0).reduce((a,b)=>a+b,0);
+  });
+  const ctx2 = document.getElementById('weekChart').getContext('2d');
+  if (window._rc2) window._rc2.destroy();
+  window._rc2 = new Chart(ctx2, {
+    type:'bar',
+    data:{labels:wl, datasets:[{label:'Verified',data:wd,backgroundColor:'#1D9E75',borderWidth:0},{label:'Total',data:[7,7,7,9],backgroundColor:'#D3D1C7',borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{max:9,ticks:{stepSize:1,font:{size:11}}}}}
+  });
+
+  let alerts = '';
+  if (missed.length > 0) alerts += `<div class="alert a-warn">Missed days: ${missed.join(', ')}. These must be made up. Rex does not accept permanent gaps.</div>`;
+  if (approved.length === 0 && S.day > 2) alerts += '<div class="alert a-err">Zero verified days. You are watching, not doing. Submit evidence now.</div>';
+  if (missed.length === 0 && approved.length > 0) alerts += '<div class="alert a-ok">Perfect record. Every completed day approved. Do not break this.</div>';
+  document.getElementById('analyticsAlerts').innerHTML = alerts;
+}
+
+// ─── EXHAUSTION ───────────────────────────────────────────────────────────────
+const EXHAUST_SYS = `You are Commander Rex, elite drill instructor. A recruit says they are exhausted and want to quit.
+RULES: Never let them fully quit. Acknowledge exhaustion briefly (1 sentence), then pivot hard to action. Give them a concrete 20-30 minute minimum task they can do even half-asleep. "Everyone is tired. Champions train tired." After 2-3 exchanges if committed: end with [EXHAUST:COMMITTED|task they agreed to]. Military tone. Short sentences.`;
+
+async function triggerExhaust() {
+  document.getElementById('exhaustChat').style.display = 'block';
+  document.getElementById('exhaustArea').innerHTML = '';
+  exhaustMsgs = [{role:'user', content:`Commander Rex, I'm exhausted. Day ${S.day} of 30. Streak: ${S.streak} days. I feel like quitting today.`}];
+  document.getElementById('exhaustSpin').style.display = 'block';
+  try {
+    const res = await callAPI(EXHAUST_SYS, exhaustMsgs, 350);
+    exhaustMsgs.push({role:'assistant', content:res});
+    appendExhaust('Commander Rex', res, true);
+    if (res.includes('[EXHAUST:COMMITTED|')) finalExhaust(res);
+  } catch(e) {}
+  document.getElementById('exhaustSpin').style.display = 'none';
+}
+
+async function sendExhaust() {
+  const inp = document.getElementById('exhaustIn');
+  const txt = inp.value.trim(); if (!txt) return; inp.value = '';
+  exhaustMsgs.push({role:'user', content:txt});
+  appendExhaust('Recruit', txt, false);
+  document.getElementById('exhaustSpin').style.display = 'block';
+  try {
+    const res = await callAPI(EXHAUST_SYS, exhaustMsgs, 350);
+    exhaustMsgs.push({role:'assistant', content:res});
+    appendExhaust('Commander Rex', res, true);
+    if (res.includes('[EXHAUST:COMMITTED|')) finalExhaust(res);
+  } catch(e) {}
+  document.getElementById('exhaustSpin').style.display = 'none';
+}
+
+function finalExhaust(text) {
+  const task = text.match(/\[EXHAUST:COMMITTED\|(.+?)\]/)?.[1] || 'minimum task';
+  document.getElementById('exhaustAlert').innerHTML = `<div class="alert a-ok">Committed: ${task}. Do it now. Report back to Rex in Verify when done.</div>`;
+}
+
+function appendExhaust(from, text, isRex) {
+  const area = document.getElementById('exhaustArea');
+  const clean = text.replace(/\[EXHAUST:[^\]]+\]/g,'').trim();
+  const div = document.createElement('div'); div.className = 'msg';
+  div.innerHTML = `<div class="msg-from ${isRex?'rex-from':'you-from'}">${from}</div><div class="msg-body ${isRex?'rex-body':''}">${clean}</div>`;
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+
+function getMVT() {
+  const day = CUR[S.day-1];
+  const short = [day.tasks[0], 'Write 3 bullet points of what you understood to GitHub — even 10 minutes counts'];
+  document.getElementById('mvtOut').innerHTML = `<div class="alert a-warn"><strong>Minimum viable tasks for Day ${S.day}:</strong><br>${short.map(t=>'· '+t).join('<br>')}<br><br>These take 20–30 minutes. Do it now. Log it tomorrow morning.</div>`;
+}
+
+// ─── RESOURCES ───────────────────────────────────────────────────────────────
+function renderResources() {
+  const res = DAY_RES[S.day] || DEFAULT_RES;
+  let h = `<div class="section-label">Key resources — Day ${S.day}</div><div class="card">`;
+  res.links.forEach(l => { h += `<div class="link-row"><a href="${l.u}" target="_blank" class="link-name">${l.n}</a><span class="link-tag">${l.t}</span></div>`; });
+  h += `</div><div class="section-label">Quick commands for today</div><div class="code-block">${res.cmds.join('\n')}</div>`;
+  if (res === DEFAULT_RES || true) {
+    h += `<div class="section-label" style="margin-top:16px">Always-useful references</div><div class="card">`;
+    [{n:'OWASP Top 10',u:'https://owasp.org/www-project-top-ten/',t:'Web vuln reference'},{n:'GTFOBins',u:'https://gtfobins.github.io',t:'Linux privesc'},{n:'PayloadsAllTheThings',u:'https://github.com/swisskyrepo/PayloadsAllTheThings',t:'Payload cheat sheets'},{n:'ExplainShell',u:'https://explainshell.com',t:'Understand any bash command'},{n:'HackTricks',u:'https://book.hacktricks.xyz',t:'Pentesting bible'}]
+      .forEach(l => { h += `<div class="link-row"><a href="${l.u}" target="_blank" class="link-name">${l.n}</a><span class="link-tag">${l.t}</span></div>`; });
+    h += `</div>`;
+  }
+  document.getElementById('resourcesBody').innerHTML = h;
+}
+
+// ─── PORTFOLIO ────────────────────────────────────────────────────────────────
+function renderPortfolio() {
+  const el = document.getElementById('portList');
+  const allEntries = [...(S.portfolio||[])];
+  if (!allEntries.length) {
+    el.innerHTML = '<p style="font-size:12px;color:var(--txt3)">No entries yet. Complete and verify days to auto-generate portfolio content.</p>';
+    return;
+  }
+  el.innerHTML = allEntries.sort((a,b)=>a.d-b.d).map(e => `
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:2px">Day ${e.d}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--txt)">${e.title}</div>
         </div>
-      `).join("");
-      const ready = providers.gemini?.configured || providers.openai?.configured || providers.perplexity?.configured;
-      $("apiStatus").textContent = ready ? "providers" : "fallback";
-      $("apiStatus").className = `badge ${ready ? "ok" : "bad"}`;
-    }
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" onclick="toggleEntry(${e.d})">View</button>
+          <button class="btn-sm" onclick="copyEntry(${e.d})">Copy →</button>
+        </div>
+      </div>
+      <div id="entry_${e.d}" style="display:none;margin-top:10px">
+        <div class="code-block">${e.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      </div>
+    </div>`).join('');
+}
 
-    function render() {
-      $("daySelect").value = state.day;
-      const task = currentTask();
-      $("missionTitle").textContent = `Day ${task.day}: ${task.title}`;
-      $("missionObjective").textContent = task.objective;
-      $("taskList").innerHTML = task.tasks.map((item, idx) => `
-        <label class="task">
-          <input type="checkbox" ${state.completed[state.day]?.tasks?.[idx] ? "checked" : ""} data-task-index="${idx}">
-          <span><strong>${item}</strong><p>Rex requires proof before the day can be approved.</p></span>
-        </label>
-      `).join("");
-      $("completedCount").textContent = Object.keys(state.completed).filter(day => state.completed[day]?.approved).length;
-      $("portfolioCount").textContent = state.portfolioCount;
-      $("regressionCount").textContent = state.regressions;
-      const scores = Object.values(state.scores);
-      $("scoreBadge").textContent = `${scores.length ? Math.round(scores.reduce((a,b) => a + b, 0) / scores.length) : 0} avg`;
-      const done = Object.keys(state.completed).filter(day => state.completed[day]?.approved).length;
-      $("overallProgress").style.width = `${done / 30 * 100}%`;
-      $("streakBadge").textContent = `${calculateStreak()} day streak`;
-      $("dayMap").innerHTML = plan.map(item => `<button class="day-btn ${state.completed[item.day]?.approved ? "done" : ""} ${item.day === state.day ? "current" : ""}" data-day="${item.day}">${item.day}</button>`).join("");
-      $("evidence").value = state.evidenceDrafts[state.day] || $("evidence").value;
-    }
+function toggleEntry(d) {
+  const el = document.getElementById('entry_'+d);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 
-    function calculateStreak() {
-      let streak = 0;
-      for (let day = state.day; day >= 1; day--) {
-        if (state.completed[day]?.approved) streak++;
-        else break;
-      }
-      return streak;
-    }
+function copyEntry(d) {
+  const e = (S.portfolio||[]).find(x=>x.d===d);
+  if (!e) return;
+  navigator.clipboard.writeText(e.content).then(()=>alert('Copied! Paste into your GitHub repo.')).catch(()=>alert('Copy failed.'));
+}
 
-    async function post(url, body) {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body)
+function exportAll() {
+  const all = S.portfolio||[];
+  if (!all.length) { alert('No portfolio entries yet.'); return; }
+  const full = `# Cybersecurity Journey — 30-Day Program\n\n> Verified by Commander Rex · Zero-budget · Pune, Maharashtra · 2026\n\n---\n\n` +
+    all.sort((a,b)=>a.d-b.d).map(e=>e.content).join('\n\n---\n\n');
+  navigator.clipboard.writeText(full).then(()=>alert('Full README copied! Paste into your GitHub README.md')).catch(()=>alert('Copy failed.'));
+}
+
+function clearPortfolio() {
+  if (!confirm('Clear all portfolio entries? This cannot be undone.')) return;
+  S.portfolio = []; saveState(); renderPortfolio();
+}
+
+// ─── NOTES ────────────────────────────────────────────────────────────────────
+function saveNote() {
+  const txt = document.getElementById('noteInput').value.trim();
+  if (!txt) return;
+  if (!S.notes) S.notes = [];
+  S.notes.unshift({day:S.day, text:txt, at:new Date().toISOString()});
+  document.getElementById('noteInput').value = '';
+  saveState(); renderNotes();
+}
+
+function renderNotes() {
+  document.getElementById('notesDay').textContent = S.day;
+  const el = document.getElementById('notesList');
+  const notes = S.notes || [];
+  if (!notes.length) {
+    el.innerHTML = '<p style="font-size:12px;color:var(--txt3)">No notes yet.</p>';
+  } else {
+    el.innerHTML = notes.slice(0,15).map(n =>
+      `<div class="note-row"><div class="note-day">Day ${n.day}</div><div class="note-txt">${n.text}</div></div>`
+    ).join('');
+  }
+  const res = DAY_RES[S.day] || DEFAULT_RES;
+  document.getElementById('cmdRef').textContent = res.cmds.join('\n');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function sw(name) {
+  const map = {mission:'pMission',verify:'pVerify',rex:'pRex',timer:'pTimer',writing:'pWriting',analytics:'pAnalytics',exhaust:'pExhaust',resources:'pResources',portfolio:'pPortfolio',notes:'pNotes'};
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  const activeTab = document.querySelector(`.nav-tab[onclick="sw('${name}')"]`);
+  if (activeTab) activeTab.classList.add('active');
+  const pane = document.getElementById(map[name]);
+  if (pane) pane.classList.add('active');
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'resources') renderResources();
+  if (name === 'portfolio') renderPortfolio();
+  if (name === 'notes') renderNotes();
+  if (name === 'rex') renderChat();
+}
+
+// ─── GITHUB PUSH ──────────────────────────────────────────────────────────
+async function pushToGitHub() {
+  const all = S.portfolio||[];
+  if (!all.length) { alert('No portfolio entries to push.'); return; }
+  let pushed = 0;
+  for (const e of all.sort((a,b)=>a.d-b.d)) {
+    try {
+      await post('/api/artifact', {
+        day: e.d,
+        title: `day-${e.d}-${e.title}`,
+        content: e.content,
+        message: `Day ${e.d}: ${e.title}`
       });
-      if (response.status === 401) {
-        await loadStatus();
-        throw new Error("Authentication required. Login again.");
+      pushed++;
+    } catch(err) { alert('GitHub push failed: ' + err.message); return; }
+  }
+  alert(`Pushed ${pushed} entries to GitHub! Check your cybersecurity-portfolio repo.`);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/api/status');
+    const status = await r.json();
+    if (status.authenticated) {
+      isLoggedIn = true;
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      loadState();
+      renderAll();
+      const area = document.getElementById('chatArea');
+      const day = CUR[S.day-1];
+      if (chatMsgs.length === 0) {
+        area.innerHTML = `<div class="msg"><div class="msg-from rex-from">Commander Rex</div><div class="msg-body rex-body">Recruit. Day ${S.day}. Mission: ${day.t}. ${S.streak>0?`Streak: ${S.streak} days. Don't break it.`:''} Complete your tasks. Go to the Verify tab. Submit specific evidence. I will interrogate you. Vague answers will be rejected. That is all.</div></div>`;
       }
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || `Request failed with ${response.status}`);
-      return payload;
+    } else {
+      showLogin();
     }
+  } catch(e) {
+    showLogin();
+  }
+}
 
-    async function login() {
-      $("loginStatus").textContent = "Checking password...";
-      try {
-        await post("/api/login", { password: $("passwordInput").value });
-        $("passwordInput").value = "";
-        await loadStatus();
-      } catch (error) {
-        $("loginStatus").textContent = error.message;
-      }
-    }
-
-    async function logout() {
-      await post("/api/logout", {});
-      await loadStatus();
-    }
-
-    async function verifyEvidence() {
-      $("verdict").textContent = "Rex is checking your proof...";
-      const task = currentTask();
-      const evidence = $("evidence").value.trim();
-      try {
-        const result = await post("/api/rex", { mode: "verify", day: state.day, task, evidence, completed: state.completed });
-        $("verdict").textContent = formatVerdict(result);
-        $("rexOrders").textContent = result.verdict || "No verdict.";
-        if (result.portfolio_markdown) $("portfolioMarkdown").value = result.portfolio_markdown;
-        state.scores[state.day] = result.score || 0;
-        state.completed[state.day] ??= {};
-        state.completed[state.day].approved = Boolean(result.approved);
-        if (result.approved) state.completed[state.day].approvedAt = new Date().toISOString();
-        saveState();
-      } catch (error) {
-        $("verdict").textContent = `Error: ${error.message}`;
-      }
-    }
-
-    function formatVerdict(result) {
-      return [
-        `Approved: ${result.approved ? "YES" : "NO"}`,
-        `Score: ${result.score ?? 0}/100`,
-        `Judge: ${result.provider || "unknown"}`,
-        result.portfolio_provider ? `Portfolio writer: ${result.portfolio_provider}` : "",
-        "",
-        result.verdict || "",
-        "",
-        "Next actions:",
-        ...(result.next_actions || []).map(item => `- ${item}`)
-      ].filter(Boolean).join("\n");
-    }
-
-    async function gradeRegression() {
-      $("regressionVerdict").textContent = "Rex is grading memory, not vibes...";
-      try {
-        const result = await post("/api/rex", {
-          mode: "regression",
-          day: state.day,
-          task: currentTask(),
-          evidence: $("regressionQuestion").textContent,
-          answer: $("regressionAnswer").value.trim()
-        });
-        $("regressionVerdict").textContent = formatVerdict(result);
-        if (result.approved) {
-          state.regressions += 1;
-          saveState();
-        }
-        if (result.regression_question) $("regressionQuestion").textContent = result.regression_question;
-      } catch (error) {
-        $("regressionVerdict").textContent = `Error: ${error.message}`;
-      }
-    }
-
-    async function runResearchCheck() {
-      $("researchOutput").textContent = "Perplexity Rex is checking current sources...";
-      try {
-        const result = await post("/api/research", { question: $("researchQuestion").value.trim() });
-        const sources = (result.search_results || []).map(item => `- ${item.title || item.url}: ${item.url || ""}`);
-        $("researchOutput").textContent = [
-          result.answer || result.error || "No answer returned.",
-          "",
-          sources.length ? "Sources:" : "",
-          ...sources
-        ].filter(Boolean).join("\n");
-      } catch (error) {
-        $("researchOutput").textContent = `Error: ${error.message}`;
-      }
-    }
-
-    async function savePortfolio() {
-      const task = currentTask();
-      const content = $("portfolioMarkdown").value.trim();
-      if (!content) return $("fileOutput").textContent = "Nothing to save.";
-      try {
-        const result = await post("/api/artifact", {
-          day: state.day,
-          title: `day-${state.day}-${task.title}`,
-          content,
-          message: `Day ${state.day}: ${task.title}`
-        });
-        state.portfolioCount += 1;
-        saveState();
-        $("fileOutput").textContent = JSON.stringify(result, null, 2);
-      } catch (error) {
-        $("fileOutput").textContent = `Error: ${error.message}`;
-      }
-    }
-
-    function randomQuestion() {
-      const questions = [
-        "Explain TCP three-way handshake and name one sign of a SYN scan in logs.",
-        "What does Linux permission 750 mean, and why does it matter?",
-        "Explain reflected XSS versus stored XSS with one safe lab example.",
-        "What is IDOR, and how do you prove impact ethically?",
-        "Explain nmap -sS, -sV, and -A in plain terms.",
-        "What makes a bug bounty report actionable?",
-        "Explain SQL injection with a harmless lab example.",
-        "What should never be included in a public security writeup?"
-      ];
-      return questions[Math.floor(Math.random() * questions.length)];
-    }
-
-    function wire() {
-      document.querySelectorAll(".nav button").forEach(btn => btn.addEventListener("click", () => {
-        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-        btn.classList.add("active");
-        $(btn.dataset.tab).classList.add("active");
-      }));
-      $("daySelect").innerHTML = plan.map(item => `<option value="${item.day}">Day ${item.day}: ${item.title}</option>`).join("");
-      $("daySelect").addEventListener("change", event => { state.day = Number(event.target.value); saveState(); });
-      $("dayMap").addEventListener("click", event => {
-        const button = event.target.closest("button[data-day]");
-        if (!button) return;
-        state.day = Number(button.dataset.day);
-        saveState();
-      });
-      $("taskList").addEventListener("change", event => {
-        const idx = event.target.dataset.taskIndex;
-        if (idx === undefined) return;
-        state.completed[state.day] ??= { tasks: {} };
-        state.completed[state.day].tasks ??= {};
-        state.completed[state.day].tasks[idx] = event.target.checked;
-        saveState();
-      });
-      $("verifyBtn").addEventListener("click", verifyEvidence);
-      $("saveEvidenceBtn").addEventListener("click", () => {
-        state.evidenceDrafts[state.day] = $("evidence").value;
-        saveState();
-        $("verdict").textContent = "Draft saved locally in this browser.";
-      });
-      $("checkRegressionBtn").addEventListener("click", gradeRegression);
-      $("newQuestionBtn").addEventListener("click", () => $("regressionQuestion").textContent = randomQuestion());
-      $("researchBtn").addEventListener("click", runResearchCheck);
-      $("savePortfolioBtn").addEventListener("click", savePortfolio);
-      $("loginBtn").addEventListener("click", login);
-      $("passwordInput").addEventListener("keydown", event => { if (event.key === "Enter") login(); });
-      $("logoutBtn").addEventListener("click", logout);
-      $("refreshStatusBtn").addEventListener("click", loadStatus);
-    }
-
-    $("regressionQuestion").textContent = randomQuestion();
-    wire();
-    loadStatus().catch(error => {
-      $("loginShell").classList.remove("hidden");
-      $("loginStatus").textContent = error.message;
-    });
-  </script>
+init();
+</script>
 </body>
 </html>

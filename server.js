@@ -76,6 +76,12 @@ const server = http.createServer(async (req, res) => {
       return json(res, saved);
     }
 
+    if (req.method === "POST" && url.pathname === "/api/chat") {
+      const body = await readJson(req);
+      const result = await chatGeneral(body.system || "", body.messages || [], body.maxTokens || 900);
+      return json(res, result);
+    }
+
     if (req.method === "POST" && url.pathname === "/api/git/commit") {
       return json(res, { error: "Local git commit was replaced by GitHub portfolio commits. Use /api/artifact." }, 410);
     }
@@ -596,4 +602,44 @@ function httpError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+async function chatGeneral(system, messages, maxTokens) {
+  if (!config.geminiKey) {
+    return { text: "Gemini API key not configured. Add GEMINI_API_KEY in Render environment variables.", error: true };
+  }
+
+  const geminiMessages = messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }]
+  }));
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: geminiMessages,
+          generationConfig: {
+            maxOutputTokens: maxTokens || 900,
+            temperature: 0.7
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const detail = await response.text();
+      return { text: `AI temporarily unavailable (${response.status}). Try again in a minute.`, error: true, detail: trimProviderError(detail) };
+    }
+
+    const payload = await response.json();
+    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return { text };
+  } catch (err) {
+    return { text: "Connection error. Try again.", error: true };
+  }
 }
