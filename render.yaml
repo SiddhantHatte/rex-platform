@@ -17,11 +17,11 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-3-flash-preview
+        value: gemini-2.0-flash
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-5.5
+        value: gpt-4o
       - key: PERPLEXITY_API_KEY
         sync: false
       - key: PERPLEXITY_MODEL

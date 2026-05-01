@@ -15,9 +15,9 @@ const config = {
   adminPassword: process.env.REX_ADMIN_PASSWORD || "",
   sessionSecret: process.env.SESSION_SECRET || "",
   geminiKey: process.env.GEMINI_API_KEY || "",
-  geminiModel: process.env.GEMINI_MODEL || "gemini-3-flash-preview",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
   openaiKey: process.env.OPENAI_API_KEY || "",
-  openaiModel: process.env.OPENAI_MODEL || "gpt-5.5",
+  openaiModel: process.env.OPENAI_MODEL || "gpt-4o",
   perplexityKey: process.env.PERPLEXITY_API_KEY || "",
   perplexityModel: process.env.PERPLEXITY_MODEL || "sonar",
   githubToken: process.env.GITHUB_TOKEN || "",
@@ -272,11 +272,10 @@ async function askGeminiJudge(body) {
     request: body.request || ""
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`, {
     method: "POST",
     headers: {
-      "content-type": "application/json",
-      "x-goog-api-key": config.geminiKey
+      "content-type": "application/json"
     },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
@@ -310,7 +309,7 @@ async function askOpenAIForPortfolio(body, verdict) {
     "Return Markdown only."
   ].join(" ");
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -318,14 +317,16 @@ async function askOpenAIForPortfolio(body, verdict) {
     },
     body: JSON.stringify({
       model: config.openaiModel,
-      instructions,
-      input: JSON.stringify({
-        day: body.day,
-        task: body.task,
-        evidence: body.evidence,
-        rex_verdict: verdict
-      }),
-      max_output_tokens: 1800
+      messages: [
+        { role: "system", content: instructions },
+        { role: "user", content: JSON.stringify({
+          day: body.day,
+          task: body.task,
+          evidence: body.evidence,
+          rex_verdict: verdict
+        }) }
+      ],
+      max_tokens: 1800
     })
   });
 
@@ -335,7 +336,7 @@ async function askOpenAIForPortfolio(body, verdict) {
   }
 
   const payload = await response.json();
-  return extractOpenAIText(payload).trim() || buildMarkdown(body.task?.title || "Approved Evidence", body, String(body.evidence || ""));
+  return (payload.choices?.[0]?.message?.content || "").trim() || buildMarkdown(body.task?.title || "Approved Evidence", body, String(body.evidence || ""));
 }
 
 async function askPerplexity(body) {
@@ -351,7 +352,7 @@ async function askPerplexity(body) {
     };
   }
 
-  const response = await fetch("https://api.perplexity.ai/v1/sonar", {
+  const response = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",
     headers: {
       "content-type": "application/json",
