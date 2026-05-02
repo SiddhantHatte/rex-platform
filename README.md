@@ -8,6 +8,8 @@ Rex is a strict accountability platform for the 30-day cybersecurity plan.
 - OpenAI writes polished GitHub portfolio Markdown after approval.
 - Perplexity checks whether resources, certifications, and learning paths are current.
 - GitHub stores approved writeups in a separate portfolio repository.
+- Local Rex fallback keeps chat and verification usable if Gemini returns a 429/rate-limit error.
+- The server stores app state, chat, evidence, notes, timers, and portfolio activity in `data/rex-db.json`, then backs it up to GitHub.
 
 ## Local Run
 
@@ -21,6 +23,23 @@ npm start
 Open `http://localhost:3000`.
 
 Never commit `.env`. API keys belong only in local `.env` or Render environment secrets.
+
+## Graphify
+
+Graphify is connected as an optional local code knowledge graph.
+
+```powershell
+cd "C:\Users\hatte\Downloads\Elite sec Reasearch\rex-platform"
+npm run graphify:install
+npm run graphify
+npm start
+```
+
+After `graphify-out/graph.html` is generated, open the app and use the `Graphify` tab, or visit `http://localhost:3000/graphify` directly. The script runs `graphify update .` from the repo root.
+
+## Database and Backups
+
+Authenticated browser state is synced to the server with `/api/db/state`. The server writes `data/rex-db.json` locally and queues a GitHub backup to `GITHUB_DB_BACKUP_PATH` in the portfolio repository. Use the `Backup DB` button in the Portfolio tab to force a backup immediately.
 
 ## Required Environment Variables
 
@@ -37,6 +56,8 @@ GITHUB_TOKEN=github-token-with-contents-write
 GITHUB_OWNER=SiddhantHatte
 GITHUB_PORTFOLIO_REPO=cybersecurity-portfolio
 GITHUB_BRANCH=main
+GITHUB_DB_BACKUP_PATH=rex-data/rex-db.json
+REX_DATA_DIR=data
 ```
 
 ## GitHub Setup

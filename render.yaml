@@ -34,3 +34,7 @@ services:
         value: cybersecurity-portfolio
       - key: GITHUB_BRANCH
         value: main
+      - key: GITHUB_DB_BACKUP_PATH
+        value: rex-data/rex-db.json
+      - key: REX_DATA_DIR
+        value: data

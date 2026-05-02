@@ -127,6 +127,8 @@ textarea{min-height:90px;resize:vertical}
 
 /* chart wrapper */
 .chart-wrap{position:relative;width:100%;margin-bottom:16px}
+.graphify-frame{width:100%;height:520px;border:0.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg2)}
+.graphify-empty{padding:18px;border:0.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg2);color:var(--txt2);font-size:12px;line-height:1.7}
 
 /* Week selector pills */
 .week-pills{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
@@ -187,6 +189,7 @@ textarea{min-height:90px;resize:vertical}
   <button class="nav-tab" onclick="sw('timer')">Schedule timer</button>
   <button class="nav-tab" onclick="sw('writing')">Writing lab</button>
   <button class="nav-tab" onclick="sw('analytics')">Analytics</button>
+  <button class="nav-tab" onclick="sw('graphify')">Graphify</button>
   <button class="nav-tab" onclick="sw('exhaust')">Exhaustion override</button>
   <button class="nav-tab" onclick="sw('resources')">Resources</button>
   <button class="nav-tab" onclick="sw('portfolio')">Portfolio</button>
@@ -278,6 +281,18 @@ textarea{min-height:90px;resize:vertical}
   <div id="analyticsAlerts"></div>
 </div>
 
+<!-- GRAPHIFY -->
+<div id="pGraphify" class="pane">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div class="section-label" style="margin:0">Code knowledge graph</div>
+    <div class="row">
+      <button class="btn-sm" onclick="renderGraphify()">Refresh</button>
+      <a class="btn-sm" href="/graphify" target="_blank" style="text-decoration:none">Open graph</a>
+    </div>
+  </div>
+  <div id="graphifyBody"></div>
+</div>
+
 <!-- EXHAUSTION OVERRIDE -->
 <div id="pExhaust" class="pane">
   <div id="exhaustAlert"></div>
@@ -309,6 +324,7 @@ textarea{min-height:90px;resize:vertical}
     <div class="row">
       <button class="btn-sm" onclick="exportAll()">Export full README →</button>
       <button class="btn-sm" onclick="pushToGitHub()" style="background:var(--green-bg);border-color:var(--green-border);color:var(--green)">Push to GitHub ↗</button>
+      <button class="btn-sm" onclick="backupDatabase()">Backup DB</button>
       <button class="btn-sm" onclick="clearPortfolio()">Clear all</button>
     </div>
   </div>
@@ -403,6 +419,7 @@ let chatMsgs = [];
 let exhaustMsgs = [];
 let timerInterval = null;
 let activeBlockId = null;
+let syncTimer = null;
 
 const LS_KEY = 'rex_v1';
 
@@ -418,7 +435,54 @@ function saveState() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(S));
     localStorage.setItem('rex_chat_' + S.day, JSON.stringify(chatMsgs));
+    queueServerSync();
   } catch(e) {}
+}
+
+function queueServerSync() {
+  if (!isLoggedIn) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncServerState, 500);
+}
+
+async function syncServerState() {
+  try {
+    await fetch('/api/db/state', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({state:S, chatMessages:chatMsgs, day:S.day, savedAt:new Date().toISOString()})
+    });
+  } catch(e) {}
+}
+
+async function hydrateServerState() {
+  try {
+    const r = await fetch('/api/db');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.state && typeof d.state === 'object') {
+      S = {...S, ...d.state};
+      const serverChat = d.chatByDay?.[String(S.day)];
+      if (Array.isArray(serverChat)) chatMsgs = serverChat;
+      localStorage.setItem(LS_KEY, JSON.stringify(S));
+      localStorage.setItem('rex_chat_' + S.day, JSON.stringify(chatMsgs));
+    }
+  } catch(e) {}
+}
+
+async function bootAuthenticated() {
+  loadState();
+  await hydrateServerState();
+  renderAll();
+  seedRexGreeting();
+}
+
+function seedRexGreeting() {
+  const area = document.getElementById('chatArea');
+  const day = CUR[S.day-1];
+  if (area && chatMsgs.length === 0) {
+    area.innerHTML = `<div class="msg"><div class="msg-from rex-from">Commander Rex</div><div class="msg-body rex-body">Recruit. Day ${S.day}. Mission: ${day.t}. ${S.streak>0?`Streak: ${S.streak} days. Don't break it.`:''} Complete your tasks. Go to the Verify tab. Submit specific evidence. I will interrogate you. Vague answers will be rejected. That is all.</div></div>`;
+  }
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────
@@ -440,7 +504,7 @@ async function doLogin() {
     isLoggedIn = true;
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    loadState(); renderAll();
+    await bootAuthenticated();
   } catch(e) {
     document.getElementById('loginError').innerHTML = '<div class="alert a-err">'+e.message+'</div>';
   }
@@ -884,6 +948,39 @@ function renderAnalytics() {
 }
 
 // ─── EXHAUSTION ───────────────────────────────────────────────────────────────
+// GRAPHIFY
+async function renderGraphify() {
+  const body = document.getElementById('graphifyBody');
+  body.innerHTML = '<div class="graphify-empty"><span class="spin"></span> Checking Graphify output...</div>';
+  try {
+    const res = await fetch('/api/graphify/status');
+    const status = await res.json();
+    if (!status.available) {
+      body.innerHTML = `
+        <div class="graphify-empty">
+          No Graphify graph has been generated yet.<br><br>
+          From the project folder, install once with <code>npm run graphify:install</code>, then run <code>npm run graphify</code>.
+          When <code>graphify-out/graph.html</code> exists, this tab will embed the interactive project graph here.
+        </div>`;
+      return;
+    }
+    const generated = status.generatedAt ? new Date(status.generatedAt).toLocaleString() : 'available';
+    body.innerHTML = `
+      <div class="metric-row">
+        <div class="metric"><div class="m-val">On</div><div class="m-lbl">Graphify connected</div></div>
+        <div class="metric"><div class="m-val" style="font-size:13px">${generated}</div><div class="m-lbl">Generated</div></div>
+      </div>
+      <iframe class="graphify-frame" src="${status.graphUrl}" title="Graphify knowledge graph"></iframe>
+      <div class="row" style="margin-top:10px">
+        ${status.jsonUrl ? `<a class="btn-sm" href="${status.jsonUrl}" target="_blank" style="text-decoration:none">graph.json</a>` : ''}
+        ${status.reportUrl ? `<a class="btn-sm" href="${status.reportUrl}" target="_blank" style="text-decoration:none">GRAPH_REPORT.md</a>` : ''}
+      </div>`;
+  } catch(e) {
+    body.innerHTML = `<div class="graphify-empty">Could not load Graphify status: ${e.message}</div>`;
+  }
+}
+
+// EXHAUSTION
 const EXHAUST_SYS = `You are Commander Rex, elite drill instructor. A recruit says they are exhausted and want to quit.
 RULES: Never let them fully quit. Acknowledge exhaustion briefly (1 sentence), then pivot hard to action. Give them a concrete 20-30 minute minimum task they can do even half-asleep. "Everyone is tired. Champions train tired." After 2-3 exchanges if committed: end with [EXHAUST:COMMITTED|task they agreed to]. Military tone. Short sentences.`;
 
@@ -1027,7 +1124,7 @@ function renderNotes() {
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function sw(name) {
-  const map = {mission:'pMission',verify:'pVerify',rex:'pRex',timer:'pTimer',writing:'pWriting',analytics:'pAnalytics',exhaust:'pExhaust',resources:'pResources',portfolio:'pPortfolio',notes:'pNotes'};
+  const map = {mission:'pMission',verify:'pVerify',rex:'pRex',timer:'pTimer',writing:'pWriting',analytics:'pAnalytics',graphify:'pGraphify',exhaust:'pExhaust',resources:'pResources',portfolio:'pPortfolio',notes:'pNotes'};
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   const activeTab = document.querySelector(`.nav-tab[onclick="sw('${name}')"]`);
@@ -1035,6 +1132,7 @@ function sw(name) {
   const pane = document.getElementById(map[name]);
   if (pane) pane.classList.add('active');
   if (name === 'analytics') renderAnalytics();
+  if (name === 'graphify') renderGraphify();
   if (name === 'resources') renderResources();
   if (name === 'portfolio') renderPortfolio();
   if (name === 'notes') renderNotes();
@@ -1061,6 +1159,15 @@ async function pushToGitHub() {
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
+async function backupDatabase() {
+  try {
+    const res = await post('/api/db/backup', {});
+    alert(`Database backed up to GitHub: ${res.path}`);
+  } catch(err) {
+    alert('Database backup failed: ' + err.message);
+  }
+}
+
 async function init() {
   try {
     const r = await fetch('/api/status');
@@ -1069,13 +1176,7 @@ async function init() {
       isLoggedIn = true;
       document.getElementById('setupScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
-      loadState();
-      renderAll();
-      const area = document.getElementById('chatArea');
-      const day = CUR[S.day-1];
-      if (chatMsgs.length === 0) {
-        area.innerHTML = `<div class="msg"><div class="msg-from rex-from">Commander Rex</div><div class="msg-body rex-body">Recruit. Day ${S.day}. Mission: ${day.t}. ${S.streak>0?`Streak: ${S.streak} days. Don't break it.`:''} Complete your tasks. Go to the Verify tab. Submit specific evidence. I will interrogate you. Vague answers will be rejected. That is all.</div></div>`;
-      }
+      await bootAuthenticated();
     } else {
       showLogin();
     }

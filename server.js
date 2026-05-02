@@ -5,7 +5,10 @@ const crypto = require("node:crypto");
 
 const root = __dirname;
 const publicDir = path.join(root, "public");
+const graphifyDir = path.join(root, "graphify-out");
 const envPath = path.join(root, ".env");
+const dataDir = process.env.REX_DATA_DIR ? path.resolve(process.env.REX_DATA_DIR) : path.join(root, "data");
+const dbPath = process.env.REX_DB_PATH ? path.resolve(process.env.REX_DB_PATH) : path.join(dataDir, "rex-db.json");
 
 loadEnv(envPath);
 
@@ -24,6 +27,7 @@ const config = {
   githubOwner: process.env.GITHUB_OWNER || "SiddhantHatte",
   githubPortfolioRepo: process.env.GITHUB_PORTFOLIO_REPO || "cybersecurity-portfolio",
   githubBranch: process.env.GITHUB_BRANCH || "main",
+  githubDbBackupPath: process.env.GITHUB_DB_BACKUP_PATH || "rex-data/rex-db.json",
   renderExternalHostname: process.env.RENDER_EXTERNAL_HOSTNAME || ""
 };
 
@@ -40,8 +44,21 @@ const server = http.createServer(async (req, res) => {
       return sendFile(res, target, contentType(target));
     }
 
+    if (req.method === "GET" && url.pathname === "/graphify") {
+      return sendFile(res, path.join(graphifyDir, "graph.html"), "text/html; charset=utf-8");
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/graphify-out/")) {
+      const target = safeJoin(graphifyDir, url.pathname.replace("/graphify-out/", ""));
+      return sendFile(res, target, contentType(target));
+    }
+
     if (req.method === "GET" && url.pathname === "/api/status") {
       return json(res, publicStatus(req));
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/graphify/status") {
+      return json(res, graphifyStatus());
     }
 
     if (req.method === "POST" && url.pathname === "/api/login") {
@@ -58,9 +75,31 @@ const server = http.createServer(async (req, res) => {
       return json(res, { error: "Authentication required" }, 401);
     }
 
+    if (req.method === "GET" && url.pathname === "/api/db") {
+      return json(res, databaseSnapshot());
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/db/state") {
+      const body = await readJson(req);
+      const saved = saveClientState(body);
+      return json(res, saved);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/db/event") {
+      const body = await readJson(req);
+      const saved = saveClientEvent(body.type || "client-event", body.payload || {});
+      return json(res, saved);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/db/backup") {
+      const backup = await backupDatabaseToGitHub();
+      return json(res, backup);
+    }
+
     if (req.method === "POST" && url.pathname === "/api/rex") {
       const body = await readJson(req);
       const result = await askRex(body);
+      saveClientEvent("rex-verdict", { day: body.day || "", mode: body.mode || "verify", task: body.task || "", evidence: body.evidence || body.answer || "", result });
       return json(res, result);
     }
 
@@ -73,12 +112,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/artifact") {
       const body = await readJson(req);
       const saved = await savePortfolioToGitHub(body);
+      saveClientEvent("portfolio-pushed", { day: body.day || "", title: body.title || "", path: saved.path, html_url: saved.html_url });
       return json(res, saved);
     }
 
     if (req.method === "POST" && url.pathname === "/api/chat") {
       const body = await readJson(req);
       const result = await chatGeneral(body.system || "", body.messages || [], body.maxTokens || 900);
+      saveClientEvent("chat", { messages: body.messages || [], response: result.text || "", provider: result.provider || "", fallback: Boolean(result.fallback), upstreamStatus: result.upstreamStatus || "" });
       return json(res, result);
     }
 
@@ -121,6 +162,11 @@ function contentType(file) {
   if (file.endsWith(".css")) return "text/css; charset=utf-8";
   if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (file.endsWith(".json")) return "application/json; charset=utf-8";
+  if (file.endsWith(".html")) return "text/html; charset=utf-8";
+  if (file.endsWith(".md")) return "text/markdown; charset=utf-8";
+  if (file.endsWith(".svg")) return "image/svg+xml";
+  if (file.endsWith(".png")) return "image/png";
+  if (file.endsWith(".jpg") || file.endsWith(".jpeg")) return "image/jpeg";
   return "text/plain; charset=utf-8";
 }
 
@@ -172,8 +218,192 @@ function publicStatus(req) {
         repo: config.githubPortfolioRepo,
         branch: config.githubBranch,
         role: "portfolio writeup commits"
+      },
+      database: {
+        configured: true,
+        path: path.relative(root, dbPath),
+        githubBackupConfigured: Boolean(config.githubToken),
+        githubBackupPath: config.githubDbBackupPath,
+        role: "server-side state, chat, evidence, and portfolio backup"
       }
     }
+  };
+}
+
+function emptyDb() {
+  const now = new Date().toISOString();
+  return {
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    lastBackupAt: "",
+    state: null,
+    chatByDay: {},
+    events: [],
+    backups: []
+  };
+}
+
+function readDb() {
+  ensureDataDir();
+  if (!fs.existsSync(dbPath)) return emptyDb();
+  try {
+    return { ...emptyDb(), ...JSON.parse(fs.readFileSync(dbPath, "utf8")) };
+  } catch {
+    const corruptPath = `${dbPath}.${Date.now()}.corrupt`;
+    try { fs.copyFileSync(dbPath, corruptPath); } catch {}
+    return emptyDb();
+  }
+}
+
+function writeDb(db, options = {}) {
+  ensureDataDir();
+  const next = { ...db, updatedAt: new Date().toISOString() };
+  const tempPath = `${dbPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(next, null, 2));
+  fs.renameSync(tempPath, dbPath);
+  if (!options.skipBackup) scheduleDatabaseBackup();
+  return next;
+}
+
+function ensureDataDir() {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+}
+
+function databaseSnapshot() {
+  const db = readDb();
+  return {
+    ok: true,
+    state: db.state,
+    chatByDay: db.chatByDay || {},
+    updatedAt: db.updatedAt,
+    lastBackupAt: db.lastBackupAt || "",
+    backupPath: config.githubDbBackupPath,
+    eventCount: Array.isArray(db.events) ? db.events.length : 0
+  };
+}
+
+function saveClientState(body) {
+  const db = readDb();
+  const day = Number(body.day || body.state?.day || 1);
+  db.state = sanitizeJson(body.state || {});
+  if (!db.chatByDay) db.chatByDay = {};
+  db.chatByDay[String(day)] = sanitizeJson(body.chatMessages || []);
+  appendDbEvent(db, "state-sync", {
+    day,
+    stateKeys: Object.keys(db.state || {}),
+    chatMessages: Array.isArray(body.chatMessages) ? body.chatMessages.length : 0
+  });
+  const saved = writeDb(db);
+  return { ok: true, updatedAt: saved.updatedAt, backupQueued: Boolean(config.githubToken) };
+}
+
+function saveClientEvent(type, payload) {
+  const db = readDb();
+  appendDbEvent(db, String(type || "event"), sanitizeJson(payload || {}));
+  const saved = writeDb(db);
+  return { ok: true, updatedAt: saved.updatedAt, backupQueued: Boolean(config.githubToken) };
+}
+
+function appendDbEvent(db, type, payload) {
+  if (!Array.isArray(db.events)) db.events = [];
+  db.events.push({
+    id: crypto.randomUUID(),
+    type,
+    at: new Date().toISOString(),
+    payload
+  });
+  if (db.events.length > 1000) db.events = db.events.slice(-1000);
+}
+
+function sanitizeJson(value) {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
+let backupTimer = null;
+let backupInFlight = false;
+
+function scheduleDatabaseBackup() {
+  if (!config.githubToken) return;
+  if (backupTimer) clearTimeout(backupTimer);
+  backupTimer = setTimeout(() => {
+    backupDatabaseToGitHub().catch(error => {
+      console.error(`Database backup failed: ${safeError(error)}`);
+    });
+  }, 1500);
+}
+
+async function backupDatabaseToGitHub() {
+  if (!config.githubToken) {
+    throw httpError("GITHUB_TOKEN is not configured. Database is stored locally only.", 503);
+  }
+  if (backupInFlight) {
+    return { ok: true, queued: true, message: "Database backup already running." };
+  }
+
+  backupInFlight = true;
+  try {
+    const db = readDb();
+    const content = JSON.stringify(db, null, 2);
+    const repoPath = config.githubDbBackupPath;
+    const existing = await getGitHubContent(repoPath);
+    const payload = {
+      message: "Back up Rex platform database",
+      content: Buffer.from(content, "utf8").toString("base64"),
+      branch: config.githubBranch
+    };
+    if (existing?.sha) payload.sha = existing.sha;
+
+    const url = `https://api.github.com/repos/${encodeURIComponent(config.githubOwner)}/${encodeURIComponent(config.githubPortfolioRepo)}/contents/${repoPath}`;
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: githubHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`GitHub database backup failed with ${response.status}: ${trimProviderError(detail)}`);
+    }
+
+    const result = await response.json();
+    const fresh = readDb();
+    fresh.lastBackupAt = new Date().toISOString();
+    fresh.backups = Array.isArray(fresh.backups) ? fresh.backups : [];
+    fresh.backups.unshift({
+      at: fresh.lastBackupAt,
+      path: repoPath,
+      commit_sha: result.commit?.sha || "",
+      html_url: result.content?.html_url || ""
+    });
+    fresh.backups = fresh.backups.slice(0, 25);
+    writeDb(fresh, { skipBackup: true });
+
+    return {
+      ok: true,
+      path: repoPath,
+      repo: `${config.githubOwner}/${config.githubPortfolioRepo}`,
+      branch: config.githubBranch,
+      html_url: result.content?.html_url || "",
+      commit_sha: result.commit?.sha || ""
+    };
+  } finally {
+    backupInFlight = false;
+  }
+}
+
+function graphifyStatus() {
+  const htmlPath = path.join(graphifyDir, "graph.html");
+  const jsonPath = path.join(graphifyDir, "graph.json");
+  const reportPath = path.join(graphifyDir, "GRAPH_REPORT.md");
+  return {
+    ok: true,
+    available: fs.existsSync(htmlPath),
+    graphUrl: "/graphify",
+    jsonUrl: fs.existsSync(jsonPath) ? "/graphify-out/graph.json" : "",
+    reportUrl: fs.existsSync(reportPath) ? "/graphify-out/GRAPH_REPORT.md" : "",
+    generatedAt: fs.existsSync(htmlPath) ? fs.statSync(htmlPath).mtime.toISOString() : "",
+    outputDir: "graphify-out"
   };
 }
 
@@ -252,15 +482,40 @@ function safeEqual(a, b) {
 }
 
 async function askRex(body) {
-  const judge = config.geminiKey ? await askGeminiJudge(body) : localRex(body);
+  let provider = "local-strict-fallback";
+  let providerWarning = "";
+  let judge;
+
+  if (config.geminiKey) {
+    try {
+      judge = await askGeminiJudge(body);
+      provider = "gemini";
+    } catch (error) {
+      providerWarning = `Gemini unavailable, using local Rex fallback: ${safeError(error)}`;
+      judge = localRex(body);
+    }
+  } else {
+    judge = localRex(body);
+  }
+
   const result = normalizeRexResult(judge);
-  result.provider = config.geminiKey ? "gemini" : "local-strict-fallback";
+  result.provider = provider;
+  if (providerWarning) result.warning = providerWarning;
 
   if (body.mode !== "regression" && result.approved) {
-    result.portfolio_markdown = config.openaiKey
-      ? await askOpenAIForPortfolio(body, result)
-      : buildMarkdown(body.task?.title || body.task || `Day ${body.day || ""} Evidence`, body, String(body.evidence || ""));
-    result.portfolio_provider = config.openaiKey ? "openai" : "local-markdown-fallback";
+    if (config.openaiKey) {
+      try {
+        result.portfolio_markdown = await askOpenAIForPortfolio(body, result);
+        result.portfolio_provider = "openai";
+      } catch (error) {
+        result.portfolio_markdown = buildMarkdown(body.task?.title || body.task || `Day ${body.day || ""} Evidence`, body, String(body.evidence || ""));
+        result.portfolio_provider = "local-markdown-fallback";
+        result.portfolio_warning = `OpenAI unavailable, using local Markdown fallback: ${safeError(error)}`;
+      }
+    } else {
+      result.portfolio_markdown = buildMarkdown(body.task?.title || body.task || `Day ${body.day || ""} Evidence`, body, String(body.evidence || ""));
+      result.portfolio_provider = "local-markdown-fallback";
+    }
   }
 
   return result;
@@ -606,7 +861,11 @@ function httpError(message, statusCode) {
 
 async function chatGeneral(system, messages, maxTokens) {
   if (!config.geminiKey) {
-    return { text: "Gemini API key not configured. Add GEMINI_API_KEY in Render environment variables.", error: true };
+    return {
+      text: localChatFallback(system, messages, "Gemini is not configured"),
+      provider: "local-fallback",
+      fallback: true
+    };
   }
 
   const geminiMessages = messages.map(m => ({
@@ -633,13 +892,128 @@ async function chatGeneral(system, messages, maxTokens) {
 
     if (!response.ok) {
       const detail = await response.text();
-      return { text: `AI temporarily unavailable (${response.status}). Try again in a minute.`, error: true, detail: trimProviderError(detail) };
+      return {
+        text: localChatFallback(system, messages, `Gemini returned ${response.status}`),
+        provider: "local-fallback",
+        fallback: true,
+        upstreamStatus: response.status,
+        detail: trimProviderError(detail)
+      };
     }
 
     const payload = await response.json();
     const text = payload.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return { text };
+    return { text, provider: "gemini" };
   } catch (err) {
-    return { text: "Connection error. Try again.", error: true };
+    return {
+      text: localChatFallback(system, messages, "Gemini connection failed"),
+      provider: "local-fallback",
+      fallback: true,
+      detail: safeError(err)
+    };
   }
+}
+
+function localChatFallback(system, messages, reason) {
+  const transcript = messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const lastUser = [...messages].reverse().find(m => m.role === "user")?.content || "";
+
+  if (/professional cybersecurity technical writer/i.test(system)) {
+    return localWritingFallback(lastUser, reason);
+  }
+
+  if (/exhausted and want to quit/i.test(system)) {
+    return [
+      "Recruit. AI quota is rate-limited, so local Rex is taking over.",
+      "You are tired. Noted. The mission is now small enough to finish.",
+      "",
+      "Minimum task: spend 25 minutes on one lab command, write three bullets about what happened, and save the note.",
+      "Report back with the exact command, output, and one thing you understood."
+    ].join("\n");
+  }
+
+  if (/Commander Rex|VERDICT|drill instructor/i.test(system)) {
+    return localRexChatFallback(transcript, lastUser, reason);
+  }
+
+  return [
+    "Local Rex fallback is active because the upstream AI is unavailable.",
+    "",
+    "Ask a concrete cybersecurity question, include the command or lab name, and I will answer from the built-in training rules."
+  ].join("\n");
+}
+
+function localRexChatFallback(transcript, lastUser, reason) {
+  const text = `${transcript}\n${lastUser}`.trim();
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const concreteSignals = [
+    /overthewire|bandit|tryhackme|hackthebox|portswigger|picoctf|dvwa|kali|virtualbox|github/i,
+    /\bssh\b|\bcat\b|\bls\b|\bfile\b|\bfind\b|\bnmap\b|\bburp\b|\bgit\b|\bcommit\b/i,
+    /output|result|learned|blocked|fixed|repo|notes|level|tcp|dns|http/i
+  ].filter(rx => rx.test(text)).length;
+  const gibberish = /([a-z])\1{12,}|[;]{4,}|[a-z]{35,}/i.test(lastUser);
+
+  if (gibberish || words < 35 || concreteSignals < 2) {
+    return [
+      `Recruit. Gemini is unavailable right now (${reason}), so local Rex is judging this.`,
+      "",
+      "Rejected. Your submission does not prove work. It is vague, unreadable, or missing technical evidence.",
+      "",
+      "Resubmit with:",
+      "1. Exact platform and lab name.",
+      "2. Exact commands you ran.",
+      "3. What output you saw.",
+      "4. One blocker or mistake.",
+      "5. One thing you learned well enough to repeat tomorrow.",
+      "",
+      "[VERDICT:REJECTED|Evidence is vague or unreadable. Redo the work and submit commands, outputs, and lessons learned.]"
+    ].join("\n");
+  }
+
+  if (words >= 90 && concreteSignals >= 3) {
+    return [
+      `Recruit. Gemini is unavailable right now (${reason}), so local Rex is interrogating you in fallback mode.`,
+      "",
+      "Answer these before approval:",
+      "1. Which exact Bandit level taught you the most, and what command solved it?",
+      "2. Explain TCP versus UDP in one practical sentence.",
+      "3. Paste the GitHub repo name and the commit message you used for Day 1.",
+      "",
+      "No verdict yet. Prove recall, not recognition."
+    ].join("\n");
+  }
+
+  return [
+    `Recruit. Gemini is unavailable right now (${reason}), so local Rex is judging this.`,
+    "",
+    "Rejected for insufficient detail. You have some signals, but not enough repeatable evidence.",
+    "Add the missing commands, outputs, and the GitHub commit proof.",
+    "",
+    "[VERDICT:REJECTED|Evidence lacks enough concrete commands, outputs, and artifact proof.]"
+  ].join("\n");
+}
+
+function localWritingFallback(prompt, reason) {
+  const clean = String(prompt || "").split("Context from recruit").pop()?.trim() || String(prompt || "").trim();
+  return [
+    `<!-- Local writing fallback active: ${reason}. Refine this draft after provider quota recovers. -->`,
+    "",
+    "# Cybersecurity Learning Log",
+    "",
+    "## Context",
+    clean || "Add the lab, commands, outputs, and lessons here.",
+    "",
+    "## Work Completed",
+    "- Document the platform and exact lab or room.",
+    "- List the commands or tools used.",
+    "- Record the important output without secrets or active flags.",
+    "",
+    "## Lessons Learned",
+    "- Explain the concept in your own words.",
+    "- Note one mistake or blocker.",
+    "- Add one regression question to answer tomorrow.",
+    "",
+    "## Next Step",
+    "Repeat the key command from memory and commit the note to GitHub."
+  ].join("\n");
 }

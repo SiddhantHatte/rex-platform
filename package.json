@@ -4,7 +4,9 @@
   "private": true,
   "description": "Local strict cybersecurity accountability platform with evidence verification and portfolio generation.",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "graphify": "graphify update .",
+    "graphify:install": "python -m pip install graphifyy"
   },
   "engines": {
     "node": ">=22"
