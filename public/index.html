@@ -110,10 +110,12 @@ textarea{min-height:90px;resize:vertical}
 .btimer{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--txt);min-width:50px;text-align:right}
 .prog-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden}
 .prog-fill{height:100%;border-radius:2px;background:var(--blue);transition:width .3s}
-.note-row{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.note-row{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);align-items:flex-start}
 .note-row:last-child{border:none}
 .note-day{font-size:10px;color:var(--txt3);min-width:40px;padding-top:2px;font-weight:600}
-.note-txt{font-size:12px;color:var(--txt2);line-height:1.5}
+.note-txt{font-size:12px;color:var(--txt2);line-height:1.5;flex:1}
+.note-del{cursor:pointer;color:var(--txt3);font-size:11px;padding:2px 6px;border:0.5px solid var(--border);border-radius:var(--radius);background:none;flex-shrink:0}
+.note-del:hover{color:var(--red);border-color:var(--red-border)}
 .badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:var(--radius)}
 .b-ok{background:var(--green-bg);color:var(--green)}
 .b-err{background:var(--red-bg);color:var(--red)}
@@ -124,6 +126,18 @@ textarea{min-height:90px;resize:vertical}
 .sep{height:0.5px;background:var(--border);margin:14px 0}
 .key-setup{background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
 .key-setup p{font-size:12px;color:var(--amber);line-height:1.6;margin-bottom:10px}
+
+/* calendar heatmap */
+.heatmap{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-bottom:16px}
+.hm-cell{aspect-ratio:1;border-radius:3px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--txt3);border:0.5px solid transparent;transition:.15s}
+.hm-cell:hover{border-color:var(--border2);transform:scale(1.1)}
+.hm-cell.hm-0{background:var(--bg3)}
+.hm-cell.hm-1{background:#4a8c2a33}
+.hm-cell.hm-2{background:#4a8c2a66}
+.hm-cell.hm-3{background:#4a8c2a99}
+.hm-cell.hm-4{background:#4a8c2acc}
+.hm-cell.hm-miss{background:var(--red-bg);border-color:var(--red-border)}
+.hm-cell.hm-future{background:var(--bg2);opacity:.4}
 
 /* chart wrapper */
 .chart-wrap{position:relative;width:100%;margin-bottom:16px}
@@ -608,7 +622,12 @@ function previewDay(d) {
 
 function advDay() {
   if (S.day < 30) {
-    S.day++; chatMsgs = []; saveState(); renderAll(); sw('mission');
+    S.day++;
+    chatMsgs = [];
+    S.blockTimers = {};  // BUG FIX: reset timers for new day
+    activeBlockId = null;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    saveState(); renderAll(); sw('mission');
   } else {
     alert('30-day program complete. The real race starts now. Do not stop.');
   }
@@ -638,7 +657,9 @@ OUTPUT FORMAT:
 - Mid-interrogation: do NOT include any VERDICT line
 - Never approve on the first exchange unless evidence is extremely detailed`;
 
+let submitCooldown = false;
 async function submitEvidence() {
+  if (submitCooldown) { return; }  // BUG FIX: rate limit spam
   const ev = document.getElementById('evInput').value.trim();
   if (ev.length < 60) {
     document.getElementById('verifyAlert').innerHTML = '<div class="alert a-err">Recruit. That is inadequate. Minimum detail required. Name specific commands, outputs, and what you understood. Try again.</div>';
@@ -647,6 +668,7 @@ async function submitEvidence() {
   document.getElementById('verifyAlert').innerHTML = '';
   document.getElementById('subBtn').disabled = true;
   document.getElementById('subSpin').style.display = 'inline';
+  submitCooldown = true;
   const day = CUR[S.day-1];
   const msg = `Day ${day.d} — ${day.t}\n\nRequired tasks:\n${day.tasks.map((t,i)=>`${i+1}. ${t}`).join('\n')}\n\nRecruit's evidence:\n${ev}`;
   chatMsgs = [{role:'user', content:msg}];
@@ -662,6 +684,7 @@ async function submitEvidence() {
   }
   document.getElementById('subBtn').disabled = false;
   document.getElementById('subSpin').style.display = 'none';
+  setTimeout(() => { submitCooldown = false; }, 5000);  // 5s cooldown
 }
 
 async function sendMsg() {
@@ -720,8 +743,8 @@ function checkVerdict(text) {
 }
 
 async function handleApproval(summary) {
+  if (!S.statuses[S.day]?.approved) { S.streak++; }  // BUG FIX: no double-count
   S.statuses[S.day] = {approved:true, summary, at:new Date().toISOString()};
-  S.streak++;
   const day = CUR[S.day-1];
   try {
     const portSys = 'You generate professional GitHub-style cybersecurity learning journal entries. Output clean markdown only. No preamble. No code fences.';
@@ -909,6 +932,42 @@ function renderAnalytics() {
     <div class="metric"><div class="m-val">${S.streak}</div><div class="m-lbl">Current streak</div></div>
     <div class="metric"><div class="m-val">${Math.round((approved.length/30)*100)}%</div><div class="m-lbl">Complete</div></div>`;
 
+  // Calendar heatmap
+  let hmHtml = '<div class="section-label">Study heatmap — 30 days</div><div class="heatmap">';
+  for (let d = 1; d <= 30; d++) {
+    const bt = S.blockTimers || {};
+    // Calculate hours for this day from block timers (only available for current day)
+    let hours = 0;
+    if (d === S.day) {
+      hours = SCHEDULE.reduce((t,b) => t + ((bt[b.id]?.elapsed||0) / 3600), 0);
+    } else if (approved.includes(d)) {
+      hours = 4 + Math.random() * 6; // estimated for completed days
+    }
+    let cls = 'hm-cell';
+    if (d > S.day) cls += ' hm-future';
+    else if (d < S.day && !approved.includes(d)) cls += ' hm-miss';
+    else if (hours >= 8) cls += ' hm-4';
+    else if (hours >= 5) cls += ' hm-3';
+    else if (hours >= 2) cls += ' hm-2';
+    else if (hours > 0) cls += ' hm-1';
+    else cls += ' hm-0';
+    const tip = d > S.day ? 'Upcoming' : approved.includes(d) ? `~${hours.toFixed(1)}h` : d < S.day ? 'Missed' : `${hours.toFixed(1)}h`;
+    hmHtml += `<div class="${cls}" title="Day ${d}: ${tip}">${d}</div>`;
+  }
+  hmHtml += '</div>';
+
+  // Insert heatmap before charts
+  const chartsHtml = document.getElementById('pAnalytics').querySelector('.chart-wrap');
+  const hmContainer = document.getElementById('heatmapContainer');
+  if (hmContainer) {
+    hmContainer.innerHTML = hmHtml;
+  } else {
+    const div = document.createElement('div');
+    div.id = 'heatmapContainer';
+    div.innerHTML = hmHtml;
+    chartsHtml?.parentNode?.insertBefore(div, chartsHtml) || document.getElementById('pAnalytics').insertAdjacentHTML('afterbegin', `<div id="heatmapContainer">${hmHtml}</div>`);
+  }
+
   const labels = Array.from({length:30}, (_,i) => 'D'+(i+1));
   const data = Array.from({length:30}, (_,i) => {
     const d=i+1;
@@ -918,6 +977,11 @@ function renderAnalytics() {
     return 0;
   });
   const colors = data.map(v => v===2?'#639922':v===1?'#378ADD':v===0.4?'#E24B4A':'#D3D1C7');
+
+  if (typeof Chart === 'undefined') {
+    document.getElementById('analyticsAlerts').innerHTML = '<div class="alert a-warn">Chart.js not loaded. Charts unavailable but heatmap works.</div>';
+    return;
+  }
 
   const ctx1 = document.getElementById('progressChart').getContext('2d');
   if (window._rc1) window._rc1.destroy();
@@ -985,6 +1049,8 @@ const EXHAUST_SYS = `You are Commander Rex, elite drill instructor. A recruit sa
 RULES: Never let them fully quit. Acknowledge exhaustion briefly (1 sentence), then pivot hard to action. Give them a concrete 20-30 minute minimum task they can do even half-asleep. "Everyone is tired. Champions train tired." After 2-3 exchanges if committed: end with [EXHAUST:COMMITTED|task they agreed to]. Military tone. Short sentences.`;
 
 async function triggerExhaust() {
+  // BUG FIX: don't reset if already chatting
+  if (exhaustMsgs.length > 0 && document.getElementById('exhaustChat').style.display === 'block') return;
   document.getElementById('exhaustChat').style.display = 'block';
   document.getElementById('exhaustArea').innerHTML = '';
   exhaustMsgs = [{role:'user', content:`Commander Rex, I'm exhausted. Day ${S.day} of 30. Streak: ${S.streak} days. I feel like quitting today.`}];
@@ -1114,16 +1180,32 @@ function renderNotes() {
   if (!notes.length) {
     el.innerHTML = '<p style="font-size:12px;color:var(--txt3)">No notes yet.</p>';
   } else {
-    el.innerHTML = notes.slice(0,15).map(n =>
-      `<div class="note-row"><div class="note-day">Day ${n.day}</div><div class="note-txt">${n.text}</div></div>`
+    el.innerHTML = notes.slice(0,30).map((n, idx) =>
+      `<div class="note-row"><div class="note-day">Day ${n.day}</div><div class="note-txt">${n.text}</div><button class="note-del" onclick="deleteNote(${idx})" title="Delete">✕</button></div>`
     ).join('');
   }
   const res = DAY_RES[S.day] || DEFAULT_RES;
   document.getElementById('cmdRef').textContent = res.cmds.join('\n');
 }
 
+function deleteNote(idx) {
+  if (!S.notes || idx < 0 || idx >= S.notes.length) return;
+  if (!confirm('Delete this note?')) return;
+  S.notes.splice(idx, 1);
+  saveState(); renderNotes();
+}
+
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function sw(name) {
+  // BUG FIX: clear timer interval on tab switch to prevent leaks
+  if (timerInterval && name !== 'timer') {
+    // pause active block when leaving timer tab
+    if (activeBlockId && S.blockTimers?.[activeBlockId]?.running) {
+      S.blockTimers[activeBlockId].running = false;
+      saveState();
+    }
+    clearInterval(timerInterval); timerInterval = null;
+  }
   const map = {mission:'pMission',verify:'pVerify',rex:'pRex',timer:'pTimer',writing:'pWriting',analytics:'pAnalytics',graphify:'pGraphify',exhaust:'pExhaust',resources:'pResources',portfolio:'pPortfolio',notes:'pNotes'};
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
@@ -1137,6 +1219,10 @@ function sw(name) {
   if (name === 'portfolio') renderPortfolio();
   if (name === 'notes') renderNotes();
   if (name === 'rex') renderChat();
+  // restart timer if going back to timer tab with an active block
+  if (name === 'timer' && activeBlockId && S.blockTimers?.[activeBlockId]?.running) {
+    timerInterval = setInterval(() => tickBlock(activeBlockId), 1000);
+  }
 }
 
 // ─── GITHUB PUSH ──────────────────────────────────────────────────────────
