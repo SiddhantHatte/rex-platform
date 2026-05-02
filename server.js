@@ -18,7 +18,7 @@ const config = {
   adminPassword: process.env.REX_ADMIN_PASSWORD || "",
   sessionSecret: process.env.SESSION_SECRET || "",
   geminiKey: process.env.GEMINI_API_KEY || "",
-  geminiModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
   openaiKey: process.env.OPENAI_API_KEY || "",
   openaiModel: process.env.OPENAI_MODEL || "gpt-4o",
   perplexityKey: process.env.PERPLEXITY_API_KEY || "",
