@@ -533,32 +533,45 @@ async function askGeminiJudge(body) {
     request: body.request || ""
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: "user", parts: [{ text: JSON.stringify(user) }] }],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json"
-      }
-    })
+  const requestBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: "user", parts: [{ text: JSON.stringify(user) }] }],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: "application/json"
+    }
   });
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Gemini verifier failed with ${response.status}: ${trimProviderError(detail)}`);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`;
+
+  // Try up to 2 times with a delay on 429
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: requestBody
+    });
+
+    if (response.status === 429 && attempt === 0) {
+      console.log("Gemini 429 — retrying in 5s...");
+      await new Promise(r => setTimeout(r, 5000));
+      continue;
+    }
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Gemini verifier failed with ${response.status}: ${trimProviderError(detail)}`);
+    }
+
+    const payload = await response.json();
+    const text = payload.candidates?.flatMap(candidate => candidate.content?.parts || [])
+      .map(part => part.text || "")
+      .join("")
+      .trim() || "{}";
+    return parseRexJson(text);
   }
 
-  const payload = await response.json();
-  const text = payload.candidates?.flatMap(candidate => candidate.content?.parts || [])
-    .map(part => part.text || "")
-    .join("")
-    .trim() || "{}";
-  return parseRexJson(text);
+  throw new Error("Gemini rate limited after retry");
 }
 
 async function askOpenAIForPortfolio(body, verdict) {
@@ -873,37 +886,52 @@ async function chatGeneral(system, messages, maxTokens) {
     parts: [{ text: m.content }]
   }));
 
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`;
+  const requestBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: geminiMessages,
+    generationConfig: {
+      maxOutputTokens: maxTokens || 900,
+      temperature: 0.7
+    }
+  });
+
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent?key=${encodeURIComponent(config.geminiKey)}`,
-      {
+    // Try up to 2 times with a delay on 429
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: geminiMessages,
-          generationConfig: {
-            maxOutputTokens: maxTokens || 900,
-            temperature: 0.7
-          }
-        })
-      }
-    );
+        body: requestBody
+      });
 
-    if (!response.ok) {
-      const detail = await response.text();
-      return {
-        text: localChatFallback(system, messages, `Gemini returned ${response.status}`),
-        provider: "local-fallback",
-        fallback: true,
-        upstreamStatus: response.status,
-        detail: trimProviderError(detail)
-      };
+      if (response.status === 429 && attempt === 0) {
+        console.log("Gemini chat 429 — retrying in 5s...");
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+
+      if (!response.ok) {
+        const detail = await response.text();
+        return {
+          text: localChatFallback(system, messages, `Gemini returned ${response.status}`),
+          provider: "local-fallback",
+          fallback: true,
+          upstreamStatus: response.status,
+          detail: trimProviderError(detail)
+        };
+      }
+
+      const payload = await response.json();
+      const text = payload.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      return { text, provider: "gemini" };
     }
 
-    const payload = await response.json();
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return { text, provider: "gemini" };
+    return {
+      text: localChatFallback(system, messages, "Gemini rate limited after retry"),
+      provider: "local-fallback",
+      fallback: true
+    };
   } catch (err) {
     return {
       text: localChatFallback(system, messages, "Gemini connection failed"),
