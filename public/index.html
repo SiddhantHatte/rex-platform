@@ -85,10 +85,17 @@ textarea{min-height:90px;resize:vertical}
 .dd.future{opacity:.35;pointer-events:none}
 .task-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)}
 .task-row:last-child{border:none}
-.chk{width:16px;height:16px;border:0.5px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.chk{width:16px;height:16px;border:0.5px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;transition:.15s;user-select:none}
+.chk:hover{border-color:var(--txt2);background:var(--bg2)}
 .chk.ok{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.chk.fail{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.chk.pending{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
 .task-txt{font-size:12px;color:var(--txt2);line-height:1.5}
 .task-txt.done{text-decoration:line-through;color:var(--txt3)}
+.task-verify{margin:6px 0 8px 26px;padding:10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:12px}
+.task-verify .tv-q{color:var(--red);font-weight:600;margin-bottom:6px;line-height:1.5}
+.task-verify input{width:100%;margin-bottom:6px}
+.task-badge{font-size:9px;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:600}
 .chat-wrap{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px;background:var(--bg2);max-height:320px;overflow-y:auto;margin-bottom:10px}
 .msg{margin-bottom:10px}
 .msg-from{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
@@ -428,7 +435,7 @@ const DEFAULT_RES = {
 };
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let S = {day:1, streak:0, statuses:{}, portfolio:[], notes:[], writings:[], blockTimers:{}};
+let S = {day:1, streak:0, statuses:{}, portfolio:[], notes:[], writings:[], blockTimers:{}, tasksDone:{}};
 let chatMsgs = [];
 let exhaustMsgs = [];
 let timerInterval = null;
@@ -590,9 +597,21 @@ function renderMission() {
       <div class="card-title" style="margin:0">Day ${day.d} · Week ${day.w} — ${day.t}</div>
       <span class="badge ${approved?'b-ok':'b-warn'}">${approved?'Approved':'Pending verification'}</span>
     </div>`;
-  day.tasks.forEach(t => {
-    h += `<div class="task-row"><div class="chk ${approved?'ok':''}">✓</div><div class="task-txt ${approved?'done':''}">${t}</div></div>`;
+  if (!S.tasksDone) S.tasksDone = {};
+  if (!S.tasksDone[S.day]) S.tasksDone[S.day] = {};
+  const doneMap = S.tasksDone[S.day];
+  day.tasks.forEach((t, idx) => {
+    const status = approved ? 'verified' : (doneMap[idx] || 'pending'); // pending | verifying | verified | failed
+    const isOk = status === 'verified';
+    const isFail = status === 'failed';
+    const chkCls = isOk ? 'ok' : isFail ? 'fail' : '';
+    const icon = isOk ? '✓' : isFail ? '✗' : '';
+    const badgeHtml = isOk ? '<span class="task-badge b-ok">Verified</span>' : isFail ? '<span class="task-badge b-err">Failed</span>' : '<span class="task-badge b-mute">Pending</span>';
+    h += `<div class="task-row" style="flex-wrap:wrap"><div class="chk ${chkCls}" onclick="startTaskVerify(${S.day},${idx})">${icon}</div><div class="task-txt ${isOk?'done':''}" style="flex:1">${t}${badgeHtml}</div></div>`;
+    h += `<div id="tv_${S.day}_${idx}" style="display:none"></div>`;
   });
+  const verified = Object.values(doneMap).filter(v => v === 'verified').length;
+  const totalTasks = day.tasks.length;
   h += `</div>`;
   if (!approved) {
     h += `<div style="padding:12px 16px;border:0.5px solid var(--border);border-radius:var(--radius-lg);background:var(--bg2);font-size:12px;color:var(--txt2);line-height:1.7">
@@ -631,6 +650,89 @@ function advDay() {
   } else {
     alert('30-day program complete. The real race starts now. Do not stop.');
   }
+}
+
+function toggleTask(day, idx) {
+  // Legacy — replaced by startTaskVerify
+  startTaskVerify(day, idx);
+}
+
+let activeVerifyTask = null;
+
+async function startTaskVerify(day, idx) {
+  if (S.statuses[day]?.approved) return;
+  if (!S.tasksDone) S.tasksDone = {};
+  if (!S.tasksDone[day]) S.tasksDone[day] = {};
+  if (S.tasksDone[day][idx] === 'verified') return;  // already done
+
+  // Close any other open verify panel
+  if (activeVerifyTask !== null) {
+    const prev = document.getElementById(`tv_${day}_${activeVerifyTask}`);
+    if (prev) prev.style.display = 'none';
+  }
+  activeVerifyTask = idx;
+
+  const el = document.getElementById(`tv_${day}_${idx}`);
+  if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML = '<div class="task-verify"><span class="spin"></span> Rex is preparing a verification question...</div>';
+
+  const taskText = CUR[day-1]?.tasks[idx] || 'this task';
+  const dayTitle = CUR[day-1]?.t || 'today';
+
+  try {
+    const question = await callAPI(
+      'You are Commander Rex. Ask exactly ONE short, specific verification question to test if the recruit actually completed this task. The question must require concrete knowledge that only someone who did the task would know. Be direct. No preamble. Just the question.',
+      [{role:'user', content:`Task: "${taskText}" (Day ${day}: ${dayTitle}). Ask one verification question.`}],
+      150
+    );
+    el.innerHTML = `<div class="task-verify">
+      <div class="tv-q">Rex: ${question}</div>
+      <input type="text" id="tva_${day}_${idx}" placeholder="Your answer..." onkeydown="if(event.key==='Enter')submitTaskVerify(${day},${idx})">
+      <div class="row"><button class="btn btn-primary" onclick="submitTaskVerify(${day},${idx})">Submit answer</button><button class="btn" onclick="cancelTaskVerify(${day},${idx})">Cancel</button></div>
+    </div>`;
+    document.getElementById(`tva_${day}_${idx}`)?.focus();
+  } catch(e) {
+    el.innerHTML = `<div class="task-verify"><div class="tv-q">Rex is unavailable. Mark manually?</div><div class="row"><button class="btn" onclick="manualMarkTask(${day},${idx})">Mark done</button><button class="btn" onclick="cancelTaskVerify(${day},${idx})">Cancel</button></div></div>`;
+  }
+}
+
+async function submitTaskVerify(day, idx) {
+  const input = document.getElementById(`tva_${day}_${idx}`);
+  const answer = input?.value?.trim();
+  if (!answer) return;
+  const el = document.getElementById(`tv_${day}_${idx}`);
+  el.innerHTML = '<div class="task-verify"><span class="spin"></span> Rex is judging your answer...</div>';
+
+  const taskText = CUR[day-1]?.tasks[idx] || 'this task';
+  try {
+    const verdict = await callAPI(
+      'You are Commander Rex judging a recruit\'s answer to a task verification question. If the answer shows genuine understanding or concrete knowledge, respond with exactly: VERIFIED followed by brief praise. If the answer is vague, wrong, or insufficient, respond with exactly: FAILED followed by what was wrong and what the correct answer includes. Be strict but fair. 2-3 sentences max.',
+      [{role:'user', content:`Task: "${taskText}"\nRecruit's answer: ${answer}`}],
+      200
+    );
+    const passed = /^VERIFIED/i.test(verdict.trim());
+    if (!S.tasksDone[day]) S.tasksDone[day] = {};
+    S.tasksDone[day][idx] = passed ? 'verified' : 'failed';
+    saveState();
+    el.innerHTML = `<div class="task-verify"><div class="alert ${passed?'a-ok':'a-err'}">${verdict}</div>${!passed?`<button class="btn" onclick="startTaskVerify(${day},${idx})" style="margin-top:6px">Retry</button>`:''}</div>`;
+    setTimeout(() => { renderMission(); }, passed ? 1500 : 0);
+  } catch(e) {
+    el.innerHTML = `<div class="task-verify alert a-err">Verification failed: ${e.message}</div>`;
+  }
+}
+
+function cancelTaskVerify(day, idx) {
+  const el = document.getElementById(`tv_${day}_${idx}`);
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  activeVerifyTask = null;
+}
+
+function manualMarkTask(day, idx) {
+  if (!S.tasksDone) S.tasksDone = {};
+  if (!S.tasksDone[day]) S.tasksDone[day] = {};
+  S.tasksDone[day][idx] = 'verified';
+  saveState(); renderMission();
 }
 
 // ─── VERIFY WITH REX ─────────────────────────────────────────────────────────
