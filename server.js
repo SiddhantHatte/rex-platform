@@ -950,6 +950,16 @@ function localChatFallback(system, messages, reason) {
     return localWritingFallback(lastUser, reason);
   }
 
+  // Task verification Call 1: question generation (two-call flow)
+  if (/verifying ONE specific completed task/i.test(system) && /Respond in JSON only/i.test(system)) {
+    return localTaskQuestionFallback(system, reason);
+  }
+
+  // Task verification Call 2: answer evaluation (two-call flow)
+  if (/Commander Rex evaluating a recruit/i.test(system) && /correct answer is/i.test(system)) {
+    return localTaskEvalFallback(system, lastUser, reason);
+  }
+
   if (/exhausted and want to quit/i.test(system)) {
     return [
       "Recruit. AI quota is rate-limited, so local Rex is taking over.",
@@ -1019,6 +1029,109 @@ function localRexChatFallback(transcript, lastUser, reason) {
     "",
     "[VERDICT:REJECTED|Evidence lacks enough concrete commands, outputs, and artifact proof.]"
   ].join("\n");
+}
+
+function localTaskQuestionFallback(system, reason) {
+  // Extract topic hints from the system prompt to generate a relevant question
+  const topicMatch = system.match(/WHAT THIS TASK REQUIRES THEM TO KNOW:\n([\s\S]*?)(?:\n\nINSTRUCTIONS)/);
+  const topics = topicMatch ? topicMatch[1].split("\n").map(t => t.replace(/^- /, "").trim()).filter(Boolean) : [];
+  const taskMatch = system.match(/TASK THE RECRUIT JUST COMPLETED:\n"([^"]+)"/);
+  const taskText = taskMatch ? taskMatch[1] : "";
+
+  // Question bank mapped to common task keywords
+  const questionBank = [
+    { rx: /virtualbox|vm|kali/i, q: "What are the default login credentials for Kali Linux?", a: "kali/kali", alt: ["kali kali", "user kali password kali", "username kali password kali"] },
+    { rx: /bandit|overthewire|ssh/i, q: "What SSH port does OverTheWire Bandit use?", a: "2220", alt: ["port 2220"] },
+    { rx: /tcp.*ip|networking|dns|http/i, q: "What is the default port number for HTTP?", a: "80", alt: ["port 80"] },
+    { rx: /github|repo|commit|git/i, q: "What git command creates a new repository in the current directory?", a: "git init", alt: ["git init ."] },
+    { rx: /nmap|scan|service detection/i, q: "What Nmap flag enables service version detection?", a: "-sV", alt: ["nmap -sV", "-sV flag"] },
+    { rx: /sql injection|sqli|portswigger.*sql/i, q: "What character is most commonly used to break a SQL query string?", a: "single quote", alt: ["'", "apostrophe", "single quote '"] },
+    { rx: /xss|cross.site/i, q: "What HTML tag is most commonly used in a basic XSS proof of concept?", a: "script", alt: ["<script>", "script tag"] },
+    { rx: /burp/i, q: "What Burp Suite tool intercepts HTTP requests between browser and server?", a: "Proxy", alt: ["Burp Proxy", "proxy tab"] },
+    { rx: /idor|access control/i, q: "What does IDOR stand for?", a: "Insecure Direct Object Reference", alt: ["insecure direct object reference", "insecure direct object references"] },
+    { rx: /metasploit|msfconsole/i, q: "What command launches the Metasploit console?", a: "msfconsole", alt: ["msfconsole command"] },
+    { rx: /wireshark|packet|capture/i, q: "What Wireshark display filter shows only HTTP traffic?", a: "http", alt: ["http filter", "display filter http"] },
+    { rx: /python|port.scan|socket/i, q: "What Python module is used to create network connections for a port scanner?", a: "socket", alt: ["socket module", "import socket"] },
+    { rx: /hash|hashcat|crack/i, q: "What is the Hashcat mode number for MD5?", a: "0", alt: ["mode 0", "-m 0"] },
+    { rx: /suid|privesc|privilege/i, q: "What command finds SUID files on Linux?", a: "find / -perm -4000", alt: ["find / -perm -u=s", "find -perm 4000"] },
+    { rx: /active directory|ad|kerberoast/i, q: "What protocol does Active Directory use for directory queries?", a: "LDAP", alt: ["ldap", "lightweight directory access protocol"] },
+    { rx: /splunk|siem|soc/i, q: "What query language does Splunk use?", a: "SPL", alt: ["spl", "search processing language"] },
+    { rx: /mitre|att.ck/i, q: "What does the T in MITRE ATT&CK technique IDs stand for?", a: "Technique", alt: ["technique"] },
+    { rx: /incident.response|nist.*ir|forensic/i, q: "How many phases are in the NIST Incident Response framework?", a: "4", alt: ["four", "4 phases"] },
+    { rx: /aws|iam|cloud|s3|ec2/i, q: "What AWS service manages user permissions and access?", a: "IAM", alt: ["iam", "identity and access management"] },
+    { rx: /bug.bounty|hackerone|bugcrowd|vdp/i, q: "What does VDP stand for in bug bounty?", a: "Vulnerability Disclosure Program", alt: ["vulnerability disclosure program"] },
+    { rx: /isc2|cc.*exam|certification/i, q: "How many questions are on the ISC2 CC exam?", a: "100", alt: ["100 questions"] },
+    { rx: /ctf|ctftime|capture.*flag/i, q: "What does CTF stand for in cybersecurity?", a: "Capture The Flag", alt: ["capture the flag"] },
+    { rx: /pentest|penetration.*test|htb.*machine/i, q: "What is the first phase of a penetration test?", a: "Reconnaissance", alt: ["recon", "information gathering", "reconnaissance"] },
+    { rx: /zero.trust/i, q: "What is the core principle of Zero Trust Architecture?", a: "Never trust, always verify", alt: ["never trust always verify", "verify everything"] },
+    { rx: /owasp.*llm|prompt.injection|ai.security/i, q: "What is the #1 risk in the OWASP LLM Top 10?", a: "Prompt Injection", alt: ["prompt injection"] },
+    { rx: /osint|shodan|theharvester/i, q: "What does Shodan search for on the internet?", a: "Internet-connected devices", alt: ["connected devices", "iot devices", "devices", "servers and devices"] }
+  ];
+
+  // Find the best matching question
+  const searchText = `${taskText} ${topics.join(" ")}`;
+  let match = questionBank.find(q => q.rx.test(searchText));
+
+  // If no match, pick from topics
+  if (!match && topics.length > 0) {
+    for (const topic of topics) {
+      match = questionBank.find(q => q.rx.test(topic));
+      if (match) break;
+    }
+  }
+
+  // Ultimate fallback
+  if (!match) {
+    match = { q: "What exact command or step did you use to complete this task?", a: "the specific command used", alt: [] };
+  }
+
+  return JSON.stringify({
+    question: match.q,
+    expected: match.a,
+    accept_also: match.alt
+  });
+}
+
+function localTaskEvalFallback(system, lastUser, reason) {
+  // Extract expected answer from system prompt
+  const expectedMatch = system.match(/correct answer is:\s*(.+?)\.?\n/i);
+  const expected = expectedMatch ? expectedMatch[1].trim().toLowerCase() : "";
+
+  // Extract recruit's answer from system prompt or last user message
+  const recruitMatch = system.match(/Recruit answered:\s*"([^"]+)"/i);
+  const recruitAnswer = (recruitMatch ? recruitMatch[1] : lastUser).trim().toLowerCase();
+
+  // Extract accept_also from system prompt
+  const acceptMatch = system.match(/Also accept:\s*(.+?)\.?\n/i);
+  const acceptAlso = acceptMatch ? acceptMatch[1].split(",").map(s => s.trim().toLowerCase()) : [];
+
+  const allAccepted = [expected, ...acceptAlso].filter(Boolean);
+
+  // Fuzzy match: check if recruit's answer contains the expected answer or vice versa
+  const passed = allAccepted.some(ans =>
+    ans && (
+      recruitAnswer === ans ||
+      recruitAnswer.includes(ans) ||
+      ans.includes(recruitAnswer) ||
+      // Check for partial matches (at least 60% of words match)
+      wordOverlap(recruitAnswer, ans) >= 0.6
+    )
+  );
+
+  if (passed) {
+    return `VERIFIED: Correct. ${expected ? `The answer is "${expected}".` : ""} Task confirmed. Move on to the next one, Recruit.`;
+  } else {
+    return `FAILED: Incorrect. The correct answer is: ${expected || "not available"}. ${acceptAlso.length > 0 ? `Also accepted: ${acceptAlso.join(", ")}.` : ""} Study this and retry.`;
+  }
+}
+
+function wordOverlap(a, b) {
+  const wordsA = new Set(a.split(/\s+/).filter(Boolean));
+  const wordsB = new Set(b.split(/\s+/).filter(Boolean));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let matches = 0;
+  for (const w of wordsA) { if (wordsB.has(w)) matches++; }
+  return matches / Math.max(wordsA.size, wordsB.size);
 }
 
 function localWritingFallback(prompt, reason) {
