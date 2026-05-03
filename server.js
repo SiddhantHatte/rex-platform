@@ -1107,16 +1107,32 @@ function localTaskEvalFallback(system, lastUser, reason) {
 
   const allAccepted = [expected, ...acceptAlso].filter(Boolean);
 
-  // Fuzzy match: check if recruit's answer contains the expected answer or vice versa
-  const passed = allAccepted.some(ans =>
-    ans && (
-      recruitAnswer === ans ||
-      recruitAnswer.includes(ans) ||
-      ans.includes(recruitAnswer) ||
-      // Check for partial matches (at least 60% of words match)
-      wordOverlap(recruitAnswer, ans) >= 0.6
-    )
-  );
+  // NLP-lite: normalize both sides and check semantic equivalence
+  const normRecruit = normalizeAnswer(recruitAnswer);
+  const passed = allAccepted.some(ans => {
+    if (!ans) return false;
+    const normAns = normalizeAnswer(ans);
+
+    // 1. Exact normalized match
+    if (normRecruit === normAns) return true;
+
+    // 2. Substring containment (either direction)
+    if (normRecruit.includes(normAns) || normAns.includes(normRecruit)) return true;
+
+    // 3. Key token coverage: do all essential tokens from the expected answer appear in the recruit's response?
+    const essentialTokens = extractCoreTokens(ans);
+    const recruitTokens = extractCoreTokens(recruitAnswer);
+    if (essentialTokens.length > 0 && essentialTokens.every(t => recruitTokens.some(rt => rt === t || rt.includes(t) || t.includes(rt)))) return true;
+
+    // 4. Word overlap >= 50% (lowered from 60% for more flexibility)
+    if (wordOverlap(normRecruit, normAns) >= 0.5) return true;
+
+    // 5. Numeric match: if expected is a number, check if the recruit's answer contains it
+    const nums = ans.match(/\d+/g);
+    if (nums && nums.length > 0 && nums.every(n => recruitAnswer.includes(n))) return true;
+
+    return false;
+  });
 
   if (passed) {
     return `VERIFIED: Correct. ${expected ? `The answer is "${expected}".` : ""} Task confirmed. Move on to the next one, Recruit.`;
@@ -1125,13 +1141,42 @@ function localTaskEvalFallback(system, lastUser, reason) {
   }
 }
 
+// Strip filler words, punctuation, and common prefixes to extract the meaning
+function normalizeAnswer(text) {
+  return String(text)
+    .toLowerCase()
+    // Strip common label prefixes: "user:", "username:", "pass:", "password:", "login:", "creds:", "credentials:"
+    .replace(/\b(user|username|password|pass|login|creds|credentials|answer|the|is|are|it|its|a|an|for|of|and|or|with|to|in|on|by)\s*[:=]?\s*/gi, "")
+    // Normalize separators: / , ; | → space
+    .replace(/[\/,;|:=\-_]+/g, " ")
+    // Strip remaining punctuation
+    .replace(/[^a-z0-9\s.]/g, "")
+    // Collapse whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Extract only meaningful tokens (skip filler/noise words)
+function extractCoreTokens(text) {
+  const fillers = new Set(["the", "a", "an", "is", "are", "was", "were", "it", "its", "and", "or", "of", "for", "to", "in", "on", "by", "with", "that", "this", "from", "user", "username", "password", "pass", "login", "creds", "credentials", "answer"]);
+  return String(text)
+    .toLowerCase()
+    .replace(/[\/,;|:=\-_'"()[\]{}]+/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 0 && !fillers.has(w));
+}
+
 function wordOverlap(a, b) {
   const wordsA = new Set(a.split(/\s+/).filter(Boolean));
   const wordsB = new Set(b.split(/\s+/).filter(Boolean));
   if (wordsA.size === 0 || wordsB.size === 0) return 0;
   let matches = 0;
-  for (const w of wordsA) { if (wordsB.has(w)) matches++; }
-  return matches / Math.max(wordsA.size, wordsB.size);
+  for (const w of wordsA) {
+    for (const wb of wordsB) {
+      if (w === wb || w.includes(wb) || wb.includes(w)) { matches++; break; }
+    }
+  }
+  return matches / Math.min(wordsA.size, wordsB.size);
 }
 
 function localWritingFallback(prompt, reason) {
