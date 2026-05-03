@@ -677,15 +677,61 @@ async function startTaskVerify(day, idx) {
   el.style.display = 'block';
   el.innerHTML = '<div class="task-verify"><span class="spin"></span> Rex is preparing a verification question...</div>';
 
-  const taskText = CUR[day-1]?.tasks[idx] || 'this task';
-  const dayTitle = CUR[day-1]?.t || 'today';
+  const dayData = CUR[day-1];
+  const taskText = dayData?.tasks[idx] || 'this task';
+  const dayTitle = dayData?.t || 'today';
+  const dayNum = dayData?.d || day;
+  const weekNum = dayData?.w || 1;
+  const topics = dayData?.topics || [];
+  const allTasks = dayData?.tasks || [];
+
+  // Build rich context for question generation (Bug 1 fix)
+  const TASK_VERIFY_SYS = `You are Commander Rex, elite cybersecurity instructor. You are verifying ONE specific completed task.
+
+TASK THE RECRUIT JUST COMPLETED:
+"${taskText}"
+
+THIS TASK IS FROM:
+Day ${dayNum} of 30 — ${dayTitle}
+Week ${weekNum}
+
+ALL TASKS FOR THIS DAY:
+${allTasks.map((t,i) => `${i+1}. ${t}`).join('\n')}
+
+WHAT THIS TASK REQUIRES THEM TO KNOW:
+${topics.map(t => '- ' + t).join('\n')}
+
+INSTRUCTIONS:
+- They should be able to run: uname -a, whoami, ip a
+ASK exactly 1 complete, specific, verifiable question about this task.
+Your question MUST be answerable in 1–3 words or a short command.
+End your question with a question mark. Do not truncate it.
+
+Respond in JSON only: {"question": "your question here", "expected": "correct answer", "accept_also": ["alternative accepted answers"]}`;
 
   try {
-    const question = await callAPI(
-      'You are Commander Rex. Ask exactly ONE short, specific verification question to test if the recruit actually completed this task. The question must require concrete knowledge that only someone who did the task would know. Be direct. No preamble. Just the question.',
-      [{role:'user', content:`Task: "${taskText}" (Day ${day}: ${dayTitle}). Ask one verification question.`}],
-      150
+    // Call 1: Generate question + expected answer (Bug 2 fix: 450 tokens)
+    const raw = await callAPI(
+      TASK_VERIFY_SYS,
+      [{role:'user', content:`Verify task: "${taskText}"`}],
+      450
     );
+
+    // Parse the JSON response
+    let qData;
+    try {
+      const jsonStr = raw.includes('{') ? raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1) : raw;
+      qData = JSON.parse(jsonStr);
+    } catch(parseErr) {
+      // Fallback: treat whole response as the question
+      qData = { question: raw.replace(/```json|```/g, '').trim(), expected: '', accept_also: [] };
+    }
+
+    const question = qData.question || raw;
+    // Store expected answer for the evaluation call (Bug 3 fix)
+    el._expectedAnswer = qData.expected || '';
+    el._acceptAlso = Array.isArray(qData.accept_also) ? qData.accept_also : [];
+
     el.innerHTML = `<div class="task-verify">
       <div class="tv-q">Rex: ${question}</div>
       <input type="text" id="tva_${day}_${idx}" placeholder="Your answer..." onkeydown="if(event.key==='Enter')submitTaskVerify(${day},${idx})">
@@ -702,14 +748,32 @@ async function submitTaskVerify(day, idx) {
   const answer = input?.value?.trim();
   if (!answer) return;
   const el = document.getElementById(`tv_${day}_${idx}`);
+
+  // Retrieve expected answer from Call 1 (Bug 3 fix)
+  const expectedAnswer = el._expectedAnswer || '';
+  const acceptAlso = el._acceptAlso || [];
+  const acceptList = [expectedAnswer, ...acceptAlso].filter(Boolean);
+
   el.innerHTML = '<div class="task-verify"><span class="spin"></span> Rex is judging your answer...</div>';
 
   const taskText = CUR[day-1]?.tasks[idx] || 'this task';
+
+  // Build evaluation prompt with the expected answer injected (Bug 3 + Bug 4 fix)
+  const evalSystem = `You are Commander Rex evaluating a recruit's answer.
+The correct answer is: ${expectedAnswer || 'use your expert knowledge'}.
+${acceptList.length > 0 ? `Also accept: ${acceptList.join(', ')}.` : ''}
+Recruit answered: "${answer}". Is this correct?
+Reply:
+VERIFIED: [brief praise] — if the answer matches or demonstrates equivalent understanding.
+FAILED: [specific correction showing the right answer] — if wrong or vague.
+Be strict but fair. 2-3 sentences max.`;
+
   try {
+    // Call 2: Evaluate against expected answer (Bug 2 fix: 450 tokens)
     const verdict = await callAPI(
-      'You are Commander Rex judging a recruit\'s answer to a task verification question. If the answer shows genuine understanding or concrete knowledge, respond with exactly: VERIFIED followed by brief praise. If the answer is vague, wrong, or insufficient, respond with exactly: FAILED followed by what was wrong and what the correct answer includes. Be strict but fair. 2-3 sentences max.',
-      [{role:'user', content:`Task: "${taskText}"\nRecruit's answer: ${answer}`}],
-      200
+      evalSystem,
+      [{role:'user', content:`Task: "${taskText}"\nExpected answer: ${expectedAnswer}\nRecruit's answer: ${answer}`}],
+      450
     );
     const passed = /^VERIFIED/i.test(verdict.trim());
     if (!S.tasksDone[day]) S.tasksDone[day] = {};
